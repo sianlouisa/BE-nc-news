@@ -29,11 +29,11 @@ exports.createArticleLookUp = (articles) => {
 };
 
 exports.formatComments = (commentsData, lookUp, articleData) => {
-  console.log(articleData);
   const formattedComments = commentsData.map((data) => {
     const date = moment(data.created_at).format('DD-MM-YYYY h:mm:ss');
     data.created_at = date;
     data.article_id = lookUp[data.belongs_to];
+    // This needs to go!!! \/
     articleData.forEach((article) => {
       data.user_id = article.created_by;
     });
