@@ -2,7 +2,9 @@ const connection = require('../db/connection');
 
 exports.getArticlesByTopic = (req, res, next) => {
   const { topic } = req.params;
-  const { limit = 10, sort_by = 'created_at', p } = req.query;
+  const {
+    limit = 10, sort_by = 'created_at', p, sort_ascending,
+  } = req.query;
   connection
     .select(
       'title',
@@ -20,9 +22,11 @@ exports.getArticlesByTopic = (req, res, next) => {
     .where('topic', topic)
     .limit(limit)
     .offset(p)
-    .orderBy(sort_by)
+    .modify((ascQuery) => {
+      if (!sort_ascending) ascQuery.orderBy(sort_by, 'desc');
+      else ascQuery.orderBy(sort_by, 'asc');
+    })
     .then((articles) => {
-      console.log(articles);
       res.status(200).send(articles);
     })
     .catch(next);
