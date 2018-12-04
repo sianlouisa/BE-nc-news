@@ -5,10 +5,12 @@ const request = require('supertest')(app);
 const connection = require('../db/connection');
 
 describe('/api', () => {
-  beforeEach(() => connection.migrate
-    .rollback()
-    .then(() => connection.migrate.latest())
-    .then(() => connection.seed.run()));
+  beforeEach(() => {
+    return connection.migrate
+      .rollback()
+      .then(() => connection.migrate.latest())
+      .then(() => connection.seed.run());
+  });
   after(() => {
     connection.destroy();
   });
@@ -59,9 +61,10 @@ describe('/api', () => {
       return request
         .get(URL)
         .expect(200)
-        .then(({ body }) => {
-          expect(body[0].topic).to.equal('mitch');
-          expect(body[0]).to.have.all.keys(
+        .then((res) => {
+          console.log(res.body);
+          expect(res.body[0].topic).to.equal('mitch');
+          expect(res.body[0]).to.have.all.keys(
             'author',
             'title',
             'article_id',
@@ -70,7 +73,7 @@ describe('/api', () => {
             'created_at',
             'topic',
           );
-          expect(body[0]).to.eql({
+          expect(res.body[0]).to.eql({
             title: 'Living in the shadow of a great man',
             article_id: 1,
             topic: 'mitch',

@@ -13,7 +13,7 @@ exports.getArticlesByTopic = (req, res, next) => {
     )
     .from('articles')
     .join('users', 'users.user_id', '=', 'articles.created_by')
-    .join('comments', 'comments.article_id', '=', 'articles.article_id')
+    .leftJoin('comments', 'comments.article_id', '=', 'articles.article_id')
     .count('comments.article_id AS comment_count')
     .groupBy('articles.article_id', 'users.username')
     .where('topic', topic)
