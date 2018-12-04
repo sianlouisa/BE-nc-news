@@ -24,18 +24,19 @@ exports.seed = function (knex, Promise) {
     .then((userRows) => {
       const userLookUp = createUserLookup(userRows);
       const formattedArticles = formatArticles(articleData, userLookUp);
-      return knex('articles')
-        .insert(formattedArticles)
-        .returning('*');
+      return Promise.all([
+        knex('articles')
+          .insert(formattedArticles)
+          .returning('*'),
+        userLookUp,
+      ]);
     })
-    .then((articleRows) => {
+    .then(([articleRows, userLookUp]) => {
       const articleLookUp = createArticleLookUp(articleRows);
-      const formattedComments = formatComments(commentData, articleLookUp, articleRows);
+      const formattedComments = formatComments(commentData, articleLookUp, userLookUp);
       return knex('comments')
         .insert(formattedComments)
         .returning('*');
     })
-    .then((commentRows) => {
-      console.log(commentRows);
-    });
+    .then(commentRows => commentRows);
 };

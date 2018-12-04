@@ -9,11 +9,11 @@ exports.createUserLookup = (users) => {
   return lookUpObj;
 };
 
-exports.formatArticles = (articleData, lookUp) => {
+exports.formatArticles = (articleData, userLookUp) => {
   const formattedArticles = articleData.map((data) => {
     const date = moment(data.created_at).format('DD-MM-YYYY h:mm:ss');
     data.created_at = date;
-    data.created_by = lookUp[data.created_by];
+    data.created_by = userLookUp[data.created_by];
     return data;
   });
   return formattedArticles;
@@ -28,15 +28,13 @@ exports.createArticleLookUp = (articles) => {
   return lookUp;
 };
 
-exports.formatComments = (commentsData, lookUp, articleData) => {
+exports.formatComments = (commentsData, lookUp, userLookUp) => {
   const formattedComments = commentsData.map((data) => {
     const date = moment(data.created_at).format('DD-MM-YYYY h:mm:ss');
     data.created_at = date;
     data.article_id = lookUp[data.belongs_to];
-    // This needs to go!!! \/
-    articleData.forEach((article) => {
-      data.user_id = article.created_by;
-    });
+    data.user_id = userLookUp[data.created_by];
+    // Revist deletions
     delete data.belongs_to;
     delete data.created_by;
     return data;
