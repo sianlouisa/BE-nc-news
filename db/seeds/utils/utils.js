@@ -1,5 +1,3 @@
-const moment = require('moment');
-
 exports.createUserLookup = (users) => {
   const lookUpObj = {};
   // refactor with reduce!
@@ -12,7 +10,7 @@ exports.createUserLookup = (users) => {
 
 exports.formatArticles = (articleData, userLookUp) => {
   const formattedArticles = articleData.map((data) => {
-    const date = moment(data.created_at).format('DD-MM-YYYY h:mm:ss');
+    const date = new Date(data.created_at);
     data.created_at = date;
     data.created_by = userLookUp[data.created_by];
     return data;
@@ -32,7 +30,7 @@ exports.createArticleLookUp = (articles) => {
 
 exports.formatComments = (commentsData, lookUp, userLookUp) => {
   const formattedComments = commentsData.map((data) => {
-    const date = moment(data.created_at).format('DD-MM-YYYY h:mm:ss');
+    const date = new Date(data.created_at);
     data.created_at = date;
     data.article_id = lookUp[data.belongs_to];
     data.user_id = userLookUp[data.created_by];

@@ -1,19 +1,26 @@
+const connection = require('../db/connection');
+
 exports.getArticlesByTopic = (req, res, next) => {
-  //   responds with an array of article objects for a given topic
-  // each article should have:
-  // author which is the username from the users table,
-  // title
-  // article_id
-  // votes
-  // comment_count which is the accumulated count of all the comments with this article_id. You should make use of knex queries in order to achieve this.
-  // created_at
-  // topic
-  //   Queries
-  // This route should accept the following queries:
-  // limit, which limits the number of responses (defaults to 10)
-  // sort_by, which sorts the articles by any valid column (defaults to date)
-  // p, stands for page which specifies the page at which to start (calculated using limit)
-  // sort_ascending, when "true" returns the results sorted in ascending order (defaults to descending)
+  const { topic } = req.params;
+  connection
+    .select(
+      'title',
+      'articles.article_id',
+      'articles.topic',
+      'articles.created_at',
+      'username AS author',
+      'articles.votes',
+    )
+    .from('articles')
+    .join('users', 'users.user_id', '=', 'articles.created_by')
+    .join('comments', 'comments.article_id', '=', 'articles.article_id')
+    .count('comments.article_id AS comment_count')
+    .groupBy('articles.article_id', 'users.username')
+    .where('topic', topic)
+    .then((articles) => {
+      res.status(200).send(articles);
+    })
+    .catch(next);
 };
 
-exports.postArticlesByTopic = (req, res, next) => {};
+// exports.postArticlesByTopic = (req, res, next) => {};

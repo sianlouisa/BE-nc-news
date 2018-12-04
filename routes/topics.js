@@ -7,9 +7,7 @@ topicsRouter
   .get(getTopics)
   .post(postTopic);
 
-topicsRouter
-  .route('/:topic/articles')
-  .get(getArticlesByTopic)
-  .post(postArticlesByTopic);
+topicsRouter.route('/:topic/articles').get(getArticlesByTopic);
+// .post(postArticlesByTopic);
 
 module.exports = topicsRouter;
