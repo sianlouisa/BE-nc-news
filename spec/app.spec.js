@@ -141,10 +141,25 @@ describe('/api', () => {
       it('PATCH - status:405 method cannot be accessed on existing route', () => {
         const URL = '/api/topics/mitch/articles';
         return request
-          .delete(URL)
+          .patch(URL)
           .expect(405)
           .then((res) => {
             expect(res.error.text).to.equal('invalid method on path');
+          });
+      });
+      it.only('POST - status:201 and responds with posted article object with correct keys', () => {
+        const URL = '/api/topics/mitch/articles';
+        const newArticle = {
+          title: 'my incredible article',
+          body: 'its 5:15pm.. Im too tired to think of anything to go here',
+          user_id: 1,
+        };
+        return request
+          .post(URL)
+          .send(newArticle)
+          .expect(201)
+          .then((body) => {
+            console.log(body);
           });
       });
     });

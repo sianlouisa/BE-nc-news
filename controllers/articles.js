@@ -32,4 +32,7 @@ exports.getArticlesByTopic = (req, res, next) => {
     .catch(next);
 };
 
-// exports.postArticlesByTopic = (req, res, next) => {};
+exports.postArticleByTopic = (req, res, next) => {
+  console.log(req.body);
+  connection('articles').insert(req.body);
+};
