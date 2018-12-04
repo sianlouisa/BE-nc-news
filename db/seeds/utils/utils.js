@@ -2,6 +2,7 @@ const moment = require('moment');
 
 exports.createUserLookup = (users) => {
   const lookUpObj = {};
+  // refactor with reduce!
   users.forEach((user) => {
     lookUpObj[user.username] = user.user_id;
     return lookUpObj;
@@ -21,6 +22,7 @@ exports.formatArticles = (articleData, userLookUp) => {
 
 exports.createArticleLookUp = (articles) => {
   const lookUp = {};
+  // refactor with reduce!
   articles.forEach((article) => {
     lookUp[article.title] = article.article_id;
     return lookUp;

@@ -4,11 +4,12 @@
   "description": "## Northcoders News API",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha ./spec/*",
     "lint": "eslint ./",
+    "lint:fix": "eslint --fix ./",
     "pre-commit": "npm t",
     "posttest": "npm run lint",
-    "seed:run": "knex migrate:rollback --env test && knex migrate:latest --env test && knex seed:run --env test",
+    "seed:run": "NODE_ENV=test knex migrate:rollback --env test && NODE_ENV=test knex migrate:latest --env test && NODE_ENV=test knex seed:run --env test",
     "dev": "nodemon listen.js"
   },
   "repository": {
@@ -24,18 +25,19 @@
   "homepage": "https://github.com/northcoders/BE2-NC-Knews#readme",
   "dependencies": {
     "body-parser": "^1.18.3",
-    "chai": "^4.2.0",
     "express": "^4.16.4",
     "knex": "^0.15.2",
-    "mocha": "^5.2.0",
     "moment": "^2.22.2",
-    "nodemon": "^1.18.7",
     "pg": "^7.6.1"
   },
   "devDependencies": {
+    "chai": "^4.2.0",
     "eslint": "^5.9.0",
     "eslint-config-airbnb": "^17.1.0",
     "eslint-plugin-import": "^2.14.0",
-    "husky": "^1.1.4"
+    "husky": "^1.1.4",
+    "mocha": "^5.2.0",
+    "nodemon": "^1.18.7",
+    "supertest": "^3.3.0"
   }
 }
