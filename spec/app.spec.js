@@ -330,7 +330,7 @@ describe('/api', () => {
             expect(body[0].votes).to.equal(-20);
           });
       });
-      it.only('DELETE - status:200 deletes post by article id successfully and responds with empty object', () => {
+      it('DELETE - status:200 deletes post by article id successfully and responds with empty object', () => {
         // make a get request on 2 and get 404 not found?
         const URL = '/api/articles/2';
         return request
@@ -339,6 +339,7 @@ describe('/api', () => {
           .then(({ body }) => {
             expect(body).eql({});
           });
+        // it doesn't work!
         // .then(() => {
         //   return request.get('/api/articles/2').expect(404);
         // })
@@ -369,8 +370,34 @@ describe('/api', () => {
       });
     });
     describe('/comments', () => {
-      it('GET - status:200 responds with array of comments', () => {
+      it('GET - status:200 responds with array of comments by article id', () => {
         const URL = '/api/articles/1/comments';
+        return request
+          .get(URL)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body[0]).to.have.all.keys('comment_id', 'votes', 'created_at', 'author', 'body');
+          });
+      });
+      it('GET - status:200 has default queries for limit(10), sort_by(date), sort_ascending(desc)', () => {
+        const URL = '/api/articles/1/comments';
+        return request
+          .get(URL)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body).to.have.length(10);
+            expect(body[0].created_at).to.eql('2016-11-22T12:36:03.389Z');
+          });
+      });
+      it('GET - status:200 queries are modifiable', () => {
+        const URL = '/api/articles/1/comments';
+        return request
+          .get(`${URL}?limit=5&sort_by=body&sort_ascending=true`)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body).to.have.length(5);
+            expect(body[0].body).to.equal('Ambidextrous marsupial');
+          });
       });
     });
   });

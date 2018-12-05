@@ -5,6 +5,7 @@ const {
   addNewVote,
   deleteArticleByArticleId,
 } = require('../controllers/articles');
+const { getCommentsByArticleId } = require('../controllers/comments');
 const { handle405 } = require('../errors/index');
 
 articlesRouter
@@ -23,6 +24,11 @@ articlesRouter
   .get(getArticlesByArticleId)
   .patch(addNewVote)
   .delete(deleteArticleByArticleId)
+  .all(handle405);
+
+articlesRouter
+  .route('/:article_id/comments')
+  .get(getCommentsByArticleId)
   .all(handle405);
 
 module.exports = articlesRouter;
