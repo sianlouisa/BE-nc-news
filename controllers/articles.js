@@ -33,6 +33,34 @@ exports.getArticlesByTopic = (req, res, next) => {
 };
 
 exports.postArticleByTopic = (req, res, next) => {
-  console.log(req.body);
-  connection('articles').insert(req.body);
+  const newObj = { ...req.body };
+  newObj.created_by = newObj.user_id;
+  // should this be deleted??
+  delete newObj.user_id;
+  connection('articles')
+    .join('users', 'articles.created_by', 'users.user_id')
+    .insert(newObj)
+    .returning(['title', 'body', 'created_by AS user_id'])
+    .then((article) => {
+      res.status(201).send(article);
+    });
+};
+
+exports.getArticles = (req, res, next) => {
+  connection('articles')
+    .select(
+      'username AS author',
+      'title',
+      'articles.article_id',
+      'articles.votes',
+      'articles.created_at',
+      'topic',
+    )
+    .join('users', 'articles.created_by', 'users.user_id')
+    .leftJoin('comments', 'articles.article_id', 'comments.article_id')
+    .count('comments.article_id AS comment_count')
+    .groupBy('articles.article_id', 'users.username')
+    .then((articles) => {
+      res.status(200).send(articles);
+    });
 };

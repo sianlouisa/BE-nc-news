@@ -147,7 +147,7 @@ describe('/api', () => {
             expect(res.error.text).to.equal('invalid method on path');
           });
       });
-      it.only('POST - status:201 and responds with posted article object with correct keys', () => {
+      it('POST - status:201 and responds with posted article object with correct keys', () => {
         const URL = '/api/topics/mitch/articles';
         const newArticle = {
           title: 'my incredible article',
@@ -158,10 +158,31 @@ describe('/api', () => {
           .post(URL)
           .send(newArticle)
           .expect(201)
-          .then((body) => {
-            console.log(body);
+          .then(({ body }) => {
+            expect(body[0]).to.have.all.keys('title', 'body', 'user_id');
+            expect(body[0]).to.eql(newArticle);
           });
       });
+    });
+  });
+  describe('/articles', () => {
+    it.only('GET - status:200 responds with array of article objects', () => {
+      const URL = '/api/articles';
+      return request
+        .get(URL)
+        .expect(200)
+        .then(({ body }) => {
+          expect(body).to.have.length(12);
+          expect(body[0]).to.have.all.keys(
+            'author',
+            'title',
+            'article_id',
+            'votes',
+            'comment_count',
+            'created_at',
+            'topic',
+          );
+        });
     });
   });
 });
