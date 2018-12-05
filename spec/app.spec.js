@@ -198,8 +198,7 @@ describe('/api', () => {
             expect(body.message).to.equal('invalid input syntax for integer');
           });
       });
-      // need to revisit
-      xit('ERROR - status:400 data is missing from post input', () => {
+      it('ERROR - status:400 data is missing from post input', () => {
         const URL = '/api/topics/mitch/articles';
         const wrongArticle = {
           body: 'there is no title',
@@ -208,8 +207,10 @@ describe('/api', () => {
         return request
           .post(URL)
           .send(wrongArticle)
-          .expect(201)
-          .then(() => {});
+          .expect(400)
+          .then(({ body }) => {
+            expect(body.message).to.equal('content missing from post');
+          });
       });
       it('ERROR - status:422 user id is valid syntax but does not exist', () => {
         const URL = '/api/topics/mitch/articles';
@@ -286,49 +287,91 @@ describe('/api', () => {
         });
     });
     // ERROR HANDLING - 400, 404
-  });
-  describe('/:article_id', () => {
-    it('GET - status:200 gets articles in object by article id', () => {
-      const URL = '/api/articles/1';
-      return request
-        .get(URL)
-        .expect(200)
-        .then(({ body }) => {
-          expect(body).to.be.an('object');
-          expect(body).to.have.all.keys(
-            'article_id',
-            'author',
-            'title',
-            'votes',
-            'body',
-            'comment_count',
-            'created_at',
-            'topic',
-          );
-          expect(body.article_id).to.equal(1);
-        });
+    describe('/:article_id', () => {
+      it('GET - status:200 gets articles in object by article id', () => {
+        const URL = '/api/articles/1';
+        return request
+          .get(URL)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body).to.be.an('object');
+            expect(body).to.have.all.keys(
+              'article_id',
+              'author',
+              'title',
+              'votes',
+              'body',
+              'comment_count',
+              'created_at',
+              'topic',
+            );
+            expect(body.article_id).to.equal(1);
+          });
+      });
+      it('PATCH - status:200 adds an increment vote object', () => {
+        const URL = '/api/articles/1';
+        const newVote = { inc_votes: 5 };
+        return request
+          .patch(URL)
+          .send(newVote)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body[0].votes).to.equal(105);
+          });
+      });
+      it('PATCH - status:200 adds an decrements vote object', () => {
+        const URL = '/api/articles/2';
+        const newVote = { inc_votes: -20 };
+        return request
+          .patch(URL)
+          .send(newVote)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body[0].votes).to.equal(-20);
+          });
+      });
+      it.only('DELETE - status:200 deletes post by article id successfully and responds with empty object', () => {
+        // make a get request on 2 and get 404 not found?
+        const URL = '/api/articles/2';
+        return request
+          .delete(URL)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body).eql({});
+          });
+        // .then(() => {
+        //   return request.get('/api/articles/2').expect(404);
+        // })
+        // .then(({ body }) => {
+        //   console.log(body);
+        //   expect(body).to.eql({});
+        // });
+      });
+      it('ERROR - status:405 method type not allowed on this path', () => {
+        const URL = '/api/articles/3';
+        return request
+          .post(URL)
+          .expect(405)
+          .then(({ body }) => {
+            expect(body.message).to.equal('invalid method on path');
+          });
+      });
+      it('ERROR - status:400 responds with error if request made with bad article id', () => {
+        // only works with abc, abc123 goes to 22P02 and status is 200
+        // when article id is number but does not exist (should be 404)
+        const URL = '/api/articles/abc';
+        return request
+          .get(URL)
+          .expect(400)
+          .then(({ body }) => {
+            expect(body.message).to.equal('incorrect form for article id');
+          });
+      });
     });
-    it.only('PATCH - status:200 adds an increment vote object', () => {
-      const URL = '/api/articles/1';
-      const newVote = { inc_votes: 5 };
-      return request
-        .patch(URL)
-        .send(newVote)
-        .expect(200)
-        .then(({ body }) => {
-          expect(body[0].votes).to.equal(105);
-        });
-    });
-    it.only('PATCH - status:200 adds an decrements vote object', () => {
-      const URL = '/api/articles/2';
-      const newVote = { inc_votes: -20 };
-      return request
-        .patch(URL)
-        .send(newVote)
-        .expect(200)
-        .then(({ body }) => {
-          expect(body[0].votes).to.equal(-20);
-        });
+    describe('/comments', () => {
+      it('GET - status:200 responds with array of comments', () => {
+        const URL = '/api/articles/1/comments';
+      });
     });
   });
 });

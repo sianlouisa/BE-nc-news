@@ -12,12 +12,13 @@ exports.handle422 = (err, req, res, next) => {
   else next(err);
 };
 
-exports.handle405 = (req, res, next) => {
-  res.status(405).send({ message: 'invalid method on path' });
-};
-
 exports.handle400 = (err, req, res, next) => {
   const codes = { '22P02': 'invalid input syntax for integer' };
   if (codes[err.code]) res.status(400).send({ message: codes[err.code] });
+  if (err.status === 400) res.status(400).send({ message: err.message });
   else next();
+};
+
+exports.handle405 = (req, res, next) => {
+  res.status(405).send({ message: 'invalid method on path' });
 };

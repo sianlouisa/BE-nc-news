@@ -27,7 +27,8 @@ exports.getArticles = (req, res, next) => {
     .offset(p)
     .then((articles) => {
       res.status(200).send(articles);
-    });
+    })
+    .catch(next);
 };
 
 exports.getArticlesByArticleId = (req, res, next) => {
@@ -50,7 +51,8 @@ exports.getArticlesByArticleId = (req, res, next) => {
     .groupBy('articles.article_id', 'users.username')
     .then(([articles]) => {
       res.status(200).send(articles);
-    });
+    })
+    .catch(next);
 };
 
 exports.getArticlesByTopic = (req, res, next) => {
@@ -97,7 +99,10 @@ exports.postArticleByTopic = (req, res, next) => {
     body,
     topic,
   };
-  connection('articles')
+  if (Object.keys(req.body).length <= 2) {
+    return next({ status: 400, message: 'content missing from post' });
+  }
+  return connection('articles')
     .join('users', 'articles.created_by', 'users.user_id')
     .insert(newObj)
     .returning('*')
@@ -117,4 +122,19 @@ exports.addNewVote = (req, res, next) => {
       res.status(200).send(articleWithNewVote);
     })
     .catch(next);
+};
+
+exports.deleteArticleByArticleId = (req, res, next) => {
+  const { article_id } = req.params;
+  return (
+    connection('articles')
+      .select()
+      .where('article_id', article_id)
+      // revisit this
+      .del()
+      .then(() => {
+        res.status(200).send({});
+      })
+      .catch(next)
+  );
 };
