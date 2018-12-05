@@ -4,7 +4,7 @@ const connection = require('../db/connection');
 // call this one first
 exports.getArticles = (req, res, next) => {
   const {
-    limit = 10, sort_by = 'created_at', sort_ascending, p,
+    limit = 10, sort_by = 'created_at', sort_ascending, p = 1,
   } = req.query;
   connection('articles')
     .select(
@@ -24,7 +24,7 @@ exports.getArticles = (req, res, next) => {
       else ascQuery.orderBy(sort_by, 'asc');
     })
     .limit(limit)
-    .offset(p)
+    .offset((p - 1) * limit)
     .then((articles) => {
       res.status(200).send(articles);
     })
@@ -58,7 +58,7 @@ exports.getArticlesByArticleId = (req, res, next) => {
 exports.getArticlesByTopic = (req, res, next) => {
   const { topic } = req.params;
   const {
-    limit = 10, sort_by = 'created_at', p, sort_ascending,
+    limit = 10, sort_by = 'created_at', p = 1, sort_ascending,
   } = req.query;
   connection
     .select(
@@ -76,7 +76,7 @@ exports.getArticlesByTopic = (req, res, next) => {
     .groupBy('articles.article_id', 'users.username')
     .where('topic', topic)
     .limit(limit)
-    .offset(p)
+    .offset((p - 1) * limit)
     .modify((ascQuery) => {
       if (!sort_ascending) ascQuery.orderBy(sort_by, 'desc');
       else ascQuery.orderBy(sort_by, 'asc');

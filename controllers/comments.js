@@ -1,7 +1,9 @@
 const connection = require('../db/connection');
 
 exports.getCommentsByArticleId = (req, res, next) => {
-  const { limit = 10, sort_by = 'created_by', sort_ascending } = req.query;
+  const {
+    limit = 10, sort_by = 'created_by', sort_ascending, p = 1,
+  } = req.query;
   connection('comments')
     .select(
       'comment_id',
@@ -14,6 +16,7 @@ exports.getCommentsByArticleId = (req, res, next) => {
     .join('articles', 'articles.article_id', 'comments.article_id')
     .join('users', 'comments.user_id', 'users.user_id')
     .limit(limit)
+    .offset((p - 1) * limit)
     .modify((ascQuery) => {
       if (!sort_ascending) ascQuery.orderBy(sort_by, 'desc');
       else ascQuery.orderBy(sort_by, 'asc');
