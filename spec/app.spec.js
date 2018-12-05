@@ -14,7 +14,7 @@ describe('/api', () => {
   after(() => {
     connection.destroy();
   });
-  it('GET - status:404 client enters invalid path', () => {
+  it('ERROR - status:404 client enters invalid path', () => {
     return request
       .get('/api/hello')
       .expect(404)
@@ -45,7 +45,7 @@ describe('/api', () => {
           expect(body.topic).to.eql(newTopic);
         });
     });
-    it('POST - status:422 client entered topic with slug that already exists', () => {
+    it('ERROR - status:422 client entered topic with slug that already exists', () => {
       const topicsURL = '/api/topics';
       const newTopic = { description: 'helllo world', slug: 'cats' };
       return request
@@ -54,6 +54,15 @@ describe('/api', () => {
         .expect(422)
         .then(({ body }) => {
           expect(body.message).to.equal('duplicate key value violates unique constraint');
+        });
+    });
+    it('ERROR - status:405 method cannot be accessed on existing route', () => {
+      const URL = '/api/topics';
+      return request
+        .delete(URL)
+        .expect(405)
+        .then(({ body }) => {
+          expect(body.message).to.equal('invalid method on path');
         });
     });
     describe('/:slug/articles', () => {
@@ -138,41 +147,95 @@ describe('/api', () => {
             expect(res.body[0].title).to.eql('A');
           });
       });
-      it('PATCH - status:405 method cannot be accessed on existing route', () => {
-        const URL = '/api/topics/mitch/articles';
-        return request
-          .patch(URL)
-          .expect(405)
-          .then((res) => {
-            expect(res.error.text).to.equal('invalid method on path');
-          });
-      });
       it('POST - status:201 and responds with posted article object with correct keys', () => {
         const URL = '/api/topics/mitch/articles';
         const newArticle = {
-          title: 'my incredible article',
-          body: 'its 5:15pm.. Im too tired to think of anything to go here',
+          title: 'article title',
+          body: 'this is a very interesting article',
           user_id: 1,
         };
         return request
           .post(URL)
           .send(newArticle)
           .expect(201)
+          .then((res) => {
+            expect(res.body).to.have.all.keys(
+              'article_id',
+              'title',
+              'body',
+              'votes',
+              'topic',
+              'created_by',
+              'created_at',
+            );
+            expect(res.body.created_by).to.equal(1);
+            expect(res.body.topic).to.equal('mitch');
+            expect(res.body.title).to.eql(newArticle.title);
+            expect(res.body.body).to.eql(newArticle.body);
+          });
+      });
+      it('ERROR - status:405 method cannot be accessed on existing route', () => {
+        const URL = '/api/topics/mitch/articles';
+        return request
+          .patch(URL)
+          .expect(405)
           .then(({ body }) => {
-            expect(body[0]).to.have.all.keys('title', 'body', 'user_id');
-            expect(body[0]).to.eql(newArticle);
+            expect(body.message).to.equal('invalid method on path');
+          });
+      });
+      it('ERROR - status:400 user id is not an integer', () => {
+        const URL = '/api/topics/mitch/articles';
+        const wrongArticle = {
+          title: 'fake news',
+          body: 'this will error',
+          user_id: 'wrong',
+        };
+        return request
+          .post(URL)
+          .send(wrongArticle)
+          .expect(400)
+          .then(({ body }) => {
+            expect(body.message).to.equal('invalid input syntax for integer');
+          });
+      });
+      // need to revisit
+      xit('ERROR - status:400 data is missing from post input', () => {
+        const URL = '/api/topics/mitch/articles';
+        const wrongArticle = {
+          body: 'there is no title',
+          user_id: 1,
+        };
+        return request
+          .post(URL)
+          .send(wrongArticle)
+          .expect(201)
+          .then(() => {});
+      });
+      it('ERROR - status:422 user id is valid syntax but does not exist', () => {
+        const URL = '/api/topics/mitch/articles';
+        const wrongID = {
+          title: 'lala',
+          body: 'who is this user',
+          user_id: 43464,
+        };
+        return request
+          .post(URL)
+          .send(wrongID)
+          .expect(422)
+          .then(({ body }) => {
+            expect(body.message).to.equal('this id does not exist');
           });
       });
     });
   });
   describe('/articles', () => {
-    it.only('GET - status:200 responds with array of article objects', () => {
+    it('GET - status:200 responds with array of article objects', () => {
       const URL = '/api/articles';
       return request
         .get(URL)
         .expect(200)
         .then(({ body }) => {
-          expect(body).to.have.length(12);
+          expect(body).to.be.an('array');
           expect(body[0]).to.have.all.keys(
             'author',
             'title',
@@ -182,6 +245,89 @@ describe('/api', () => {
             'created_at',
             'topic',
           );
+        });
+    });
+    it('GET - status:200 has default limit of 10, sort by date, and sort desc', () => {
+      const URL = '/api/articles';
+      return request
+        .get(URL)
+        .expect(200)
+        .then(({ body }) => {
+          expect(body).to.have.length(10);
+          expect(body[0].created_at).to.equal('2018-11-15T12:21:54.171Z');
+        });
+    });
+    it('GET - status:200 has a p query which can set the page number', () => {
+      const URL = '/api/articles';
+      return request
+        .get(`${URL}?limit=5&p=2`)
+        .expect(200)
+        .then(({ body }) => {
+          expect(body).to.have.length(5);
+        });
+    });
+    it('GET - status:200 queries can be modifed', () => {
+      const URL = '/api/articles';
+      return request
+        .get(`${URL}?limit=3&sort_by=title&sort_ascending=true`)
+        .expect(200)
+        .then(({ body }) => {
+          expect(body).to.have.length(3);
+          expect(body[0].title).to.equal('A');
+        });
+    });
+    it('ERROR - status:405 method type not allowed on this path', () => {
+      const URL = '/api/articles';
+      return request
+        .delete(URL)
+        .expect(405)
+        .then(({ body }) => {
+          expect(body.message).to.equal('invalid method on path');
+        });
+    });
+    // ERROR HANDLING - 400, 404
+  });
+  describe('/:article_id', () => {
+    it('GET - status:200 gets articles in object by article id', () => {
+      const URL = '/api/articles/1';
+      return request
+        .get(URL)
+        .expect(200)
+        .then(({ body }) => {
+          expect(body).to.be.an('object');
+          expect(body).to.have.all.keys(
+            'article_id',
+            'author',
+            'title',
+            'votes',
+            'body',
+            'comment_count',
+            'created_at',
+            'topic',
+          );
+          expect(body.article_id).to.equal(1);
+        });
+    });
+    it.only('PATCH - status:200 adds an increment vote object', () => {
+      const URL = '/api/articles/1';
+      const newVote = { inc_votes: 5 };
+      return request
+        .patch(URL)
+        .send(newVote)
+        .expect(200)
+        .then(({ body }) => {
+          expect(body[0].votes).to.equal(105);
+        });
+    });
+    it.only('PATCH - status:200 adds an decrements vote object', () => {
+      const URL = '/api/articles/2';
+      const newVote = { inc_votes: -20 };
+      return request
+        .patch(URL)
+        .send(newVote)
+        .expect(200)
+        .then(({ body }) => {
+          expect(body[0].votes).to.equal(-20);
         });
     });
   });

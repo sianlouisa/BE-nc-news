@@ -6,7 +6,8 @@ const { handle405 } = require('../errors/index');
 topicsRouter
   .route('/')
   .get(getTopics)
-  .post(postTopic);
+  .post(postTopic)
+  .all(handle405);
 
 topicsRouter
   .route('/:topic/articles')
