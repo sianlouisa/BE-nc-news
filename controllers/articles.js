@@ -25,15 +25,16 @@ exports.getArticles = (req, res, next) => {
     })
     .limit(limit)
     .offset((p - 1) * limit)
-    .then((articles) => {
-      res.status(200).send(articles);
-    })
+    .then(articles => res.status(200).send(articles))
     .catch(next);
 };
 
 exports.getArticlesByArticleId = (req, res, next) => {
   const { article_id } = req.params;
-  connection
+  if (!article_id) {
+    return next({ status: 404, message: 'page not found' });
+  }
+  return connection
     .select(
       'articles.article_id',
       'username AS author',
@@ -50,7 +51,8 @@ exports.getArticlesByArticleId = (req, res, next) => {
     .count('comments.article_id AS comment_count')
     .groupBy('articles.article_id', 'users.username')
     .then(([articles]) => {
-      res.status(200).send(articles);
+      if (typeof articles === 'undefined') next({ status: 404, message: 'page not found' });
+      else res.status(200).send(articles);
     })
     .catch(next);
 };
@@ -112,7 +114,7 @@ exports.postArticleByTopic = (req, res, next) => {
     .catch(next);
 };
 
-exports.addNewVote = (req, res, next) => {
+exports.addNewArticleVote = (req, res, next) => {
   const { inc_votes } = req.body;
   connection('articles')
     .where('article_id', req.params.article_id)

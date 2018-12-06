@@ -71,9 +71,10 @@ describe('/api', () => {
         return request
           .get(URL)
           .expect(200)
-          .then((res) => {
-            expect(res.body[0].topic).to.equal('mitch');
-            expect(res.body[0]).to.have.all.keys(
+          .then(({ body }) => {
+            expect(body).to.be.an('array');
+            expect(body[0].topic).to.equal('mitch');
+            expect(body[0]).to.have.all.keys(
               'author',
               'title',
               'article_id',
@@ -82,6 +83,7 @@ describe('/api', () => {
               'created_at',
               'topic',
             );
+            expect(body[0].comment_count).to.equal('13');
           });
       });
       it('GET - status:200 has a limit query defaulted to 10', () => {
@@ -98,8 +100,8 @@ describe('/api', () => {
         return request
           .get(`${URL}?limit=5`)
           .expect(200)
-          .then((res) => {
-            expect(res.body).to.have.length(5);
+          .then(({ body }) => {
+            expect(body).to.have.length(5);
           });
       });
       it('GET - status:200 has sort by query defaulted to date', () => {
@@ -116,8 +118,8 @@ describe('/api', () => {
         return request
           .get(`${URL}?sort_by=title`)
           .expect(200)
-          .then((res) => {
-            expect(res.body[0].title).to.eql('Z');
+          .then(({ body }) => {
+            expect(body[0].title).to.eql('Z');
           });
       });
       it('GET - status:200 has p query to specify which page to start at', () => {
@@ -150,8 +152,8 @@ describe('/api', () => {
           .post(URL)
           .send(newArticle)
           .expect(201)
-          .then((res) => {
-            expect(res.body).to.have.all.keys(
+          .then(({ body }) => {
+            expect(body).to.have.all.keys(
               'article_id',
               'title',
               'body',
@@ -160,10 +162,10 @@ describe('/api', () => {
               'created_by',
               'created_at',
             );
-            expect(res.body.created_by).to.equal(1);
-            expect(res.body.topic).to.equal('mitch');
-            expect(res.body.title).to.eql(newArticle.title);
-            expect(res.body.body).to.eql(newArticle.body);
+            expect(body.created_by).to.equal(1);
+            expect(body.topic).to.equal('mitch');
+            expect(body.title).to.eql(newArticle.title);
+            expect(body.body).to.eql(newArticle.body);
           });
       });
       it('ERROR - status:405 method cannot be accessed on existing route', () => {
@@ -219,7 +221,13 @@ describe('/api', () => {
             expect(body.message).to.equal('this id does not exist');
           });
       });
-      xit('MORE ERROR HANDLES??', () => {});
+      it('ERROR - status:404 invald path name entered', () => {
+        const wrongURL = '/api/topics/mitch/blah';
+        return request
+          .get(wrongURL)
+          .expect(404)
+          .then(({ body }) => expect(body.message).to.equal('page not found'));
+      });
     });
   });
   describe('/articles', () => {
@@ -280,8 +288,7 @@ describe('/api', () => {
           expect(body.message).to.equal('invalid method on path');
         });
     });
-    xit('MORE ERROR HANDLES?', () => {});
-    describe.only('/:article_id', () => {
+    describe('/:article_id', () => {
       it('GET - status:200 gets articles in object by article id', () => {
         const URL = '/api/articles/1';
         return request
@@ -300,67 +307,70 @@ describe('/api', () => {
               'topic',
             );
             expect(body.article_id).to.equal(1);
+            expect(body.comment_count).to.equal('13');
           });
       });
       it('PATCH - status:200 adds an increment vote object', () => {
-        const URL = '/api/articles/1';
+        const URL = '/api/articles/2';
         const newVote = { inc_votes: 5 };
         return request
           .patch(URL)
           .send(newVote)
           .expect(200)
           .then(({ body }) => {
-            expect(body[0].votes).to.equal(105);
+            expect(body[0].votes).to.equal(5);
           });
       });
       it('PATCH - status:200 adds an decrements vote object', () => {
-        const URL = '/api/articles/2';
-        const newVote = { inc_votes: -20 };
+        const URL = '/api/articles/1';
+        const newVote = { inc_votes: -100 };
         return request
           .patch(URL)
           .send(newVote)
           .expect(200)
           .then(({ body }) => {
-            expect(body[0].votes).to.equal(-20);
+            expect(body[0].votes).to.equal(0);
           });
       });
       it('DELETE - status:200 deletes post by article id successfully and responds with empty object', () => {
-        // make a get request on 2 and get 404 not found?
         const URL = '/api/articles/2';
         return request
           .delete(URL)
           .expect(200)
           .then(({ body }) => {
             expect(body).eql({});
-          });
-        // it doesn't work!
-        // .then(() => {
-        //   return request.get('/api/articles/2').expect(404);
-        // })
-        // .then(({ body }) => {
-        //   console.log(body);
-        //   expect(body).to.eql({});
-        // });
+          })
+          .then(() => request.get('/api/articles').expect(200))
+          .then(({ body }) => {
+            expect(body).to.have.length(10);
+            expect(body[1].article_id).to.equal(3);
+          })
+          .then(() => request.get(URL).expect(404))
+          .then(({ body }) => expect(body.message).to.equal('page not found'));
+      });
+      it('ERROR - status 404 path is invalid', () => {
+        const URL = '/api/articles/5453';
+        return request
+          .get(URL)
+          .expect(404)
+          .then(({ body }) => expect(body.message).to.equal('page not found'));
       });
       it('ERROR - status:405 method type not allowed on this path', () => {
         const URL = '/api/articles/3';
         return request
           .post(URL)
           .expect(405)
-          .then(({ body }) => {
-            expect(body.message).to.equal('invalid method on path');
-          });
+          .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
       });
       it('ERROR - status:400 responds with error if request made with bad article id', () => {
-        // only works with abc, abc123 goes to 22P02 and status is 200
-        // when article id is number but does not exist (should be 404)
-        const URL = '/api/articles/abc';
+        const wrongURL1 = '/api/articles/abc';
+        const wrongURL2 = '/api/articles/abc123';
         return request
-          .get(URL)
+          .get(wrongURL1)
           .expect(400)
-          .then(({ body }) => {
-            expect(body.message).to.equal('incorrect form for article id');
-          });
+          .then(({ body }) => expect(body.message).to.equal('incorrect form for article id'))
+          .then(() => request.get(wrongURL2).expect(400))
+          .then(({ body }) => expect(body.message).to.equal('incorrect form for article id'));
       });
     });
     describe('/comments', () => {
@@ -393,12 +403,92 @@ describe('/api', () => {
             expect(body[0].body).to.equal('Ambidextrous marsupial');
           });
       });
-      it('GET - status:200 has a page query', () => {
+      it('GET - status:200 has a page query which is modifiable', () => {
         const URL = '/api/articles/1/comments';
         return request
-          .get(`${URL}?limit=8&p=4`)
+          .get(`${URL}?limit=3&p=3`)
           .expect(200)
-          .then(({ body }) => {});
+          .then(({ body }) => expect(body[0].comment_id).to.equal(8));
+      });
+      it('POST - status:201 responds with object of new comment data', () => {
+        const newComment = { user_id: 2, body: 'insert interesting opinion here' };
+        const URL = '/api/articles/2/comments';
+        return request
+          .post(URL)
+          .send(newComment)
+          .expect(201)
+          .then(({ body }) => {
+            expect(body).to.have.all.keys(
+              'comment_id',
+              'votes',
+              'created_at',
+              'user_id',
+              'body',
+              'article_id',
+            );
+            expect(body.user_id).to.equal(newComment.user_id);
+            expect(body.body).to.equal(newComment.body);
+          });
+      });
+      describe('/:comment_id', () => {
+        it('PATCH - status:200 accepts new vote count which increments comment vote', () => {
+          const URL = '/api/articles/1/comments/3';
+          const newVote = { inc_votes: 10 };
+          return request
+            .patch(URL)
+            .send(newVote)
+            .expect(200)
+            .then(({ body }) => expect(body.votes).to.equal(110));
+        });
+        it('PATCH - status:200 accepts new vote count which decrements comment vote', () => {
+          const URL = '/api/articles/1/comments/2';
+          const newVote = { inc_votes: -100 };
+          return request
+            .patch(URL)
+            .send(newVote)
+            .expect(200)
+            .then(({ body }) => expect(body.votes).to.equal(-86));
+        });
+        xit('DELETE - status:204 successfully deleted comment by comment id', () => {
+          const URL = '/api/articles/1/comments/4';
+          return (
+            request
+              .delete(URL)
+              .expect(204)
+              .then(({ body }) => expect(body).to.eql({}))
+              // what do i do here!
+              .then(() => request.patch(URL).expect(404))
+              .then(({ body }) => expect(body.message).to.equal('page not found'))
+          );
+        });
+      });
+    });
+    describe('/users', () => {
+      it('GET - status:200 and responds with array of user object', () => {
+        const URL = '/api/users';
+        return request
+          .get(URL)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body).to.be.an('array');
+            expect(body[0]).to.have.all.keys('user_id', 'username', 'avatar_url', 'name');
+          });
+      });
+      describe('/:user_id', () => {
+        it.only('GET - status:200 gets users by user id and responds with object', () => {
+          const URL = '/api/users/2';
+          return request
+            .get(URL)
+            .expect(200)
+            .then(({ body }) => {
+              expect(body).to.eql({
+                user_id: 2,
+                username: 'icellusedkars',
+                avatar_url: 'https://avatars2.githubusercontent.com/u/24604688?s=460&v=4',
+                name: 'sam',
+              });
+            });
+        });
       });
     });
   });
