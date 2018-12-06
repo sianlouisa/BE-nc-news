@@ -53,7 +53,7 @@ describe('/api', () => {
         .send(newTopic)
         .expect(422)
         .then(({ body }) => {
-          expect(body.message).to.equal('duplicate key value violates unique constraint');
+          expect(body.message).to.equal('the key you have entered already exists');
         });
     });
     it('ERROR - DELETE - status:405 method cannot be accessed on existing route', () => {
@@ -332,11 +332,11 @@ describe('/api', () => {
             expect(body[0].votes).to.equal(0);
           });
       });
-      it('DELETE - status:200 deletes post by article id successfully and responds with empty object', () => {
+      it('DELETE - status:204 deletes post by article id successfully and responds with empty object', () => {
         const URL = '/api/articles/2';
         return request
           .delete(URL)
-          .expect(200)
+          .expect(204)
           .then(({ body }) => {
             expect(body).eql({});
           })
@@ -556,48 +556,101 @@ describe('/api', () => {
             .expect(404)
             .then(({ body }) => expect(body.message).to.equal('page not found'));
         });
-        xit('ERROR - PATCH - status:400 data is missing and vote is not incremented', () => {
+        it('ERROR - PATCH - status:400 data is missing and vote does not increment', () => {
           const URL = '/api/articles/1/comments/2';
+          const commentsURL = '/api/articles/1/comments';
           const noData = {};
           return request
-            .get(URL)
+            .get(commentsURL)
             .expect(200)
-            .then(({ body }) => expect(body.votes).to.equal(14))
-          .then(() => request.patch(URL).send(noData).expect(400))
-          // .then(({body}) => expect(body.message).to.equal('content missing from post'))
-
-          // return request.get(URL).status(200)
-          // .then(({body}) => expect(body.votes).to.equal(14))
-          // .then(() => request.patch(URL).send(noData).expect(400))
-          // .then(({ body }) => expect(body.message).to.equal('content missing from post'));
+            .then(({ body }) => expect(body[0].votes).to.equal(14))
+            .then(() => request
+              .patch(URL)
+              .send(noData)
+              .expect(400))
+            .then(({ body }) => expect(body.message).to.equal('incorrect data type entered'))
+            .then(() => request.get(commentsURL).expect(200))
+            .then(({ body }) => expect(body[0].votes).to.equal(14));
         });
-      });
-    });
-    describe('/users', () => {
-      it('GET - status:200 and responds with array of user object', () => {
-        const URL = '/api/users';
-        return request
-          .get(URL)
-          .expect(200)
-          .then(({ body }) => {
-            expect(body).to.be.an('array');
-            expect(body[0]).to.have.all.keys('user_id', 'username', 'avatar_url', 'name');
-          });
-      });
-      describe('/:user_id', () => {
-        it('GET - status:200 gets users by user id and responds with object', () => {
-          const URL = '/api/users/2';
+        it('ERROR - PATCH - status:400 data passed contains incorrect data type', () => {
+          const URL = '/api/articles/1/comments/2';
+          const wrongData = { inc_vote: 'hello' };
           return request
-            .get(URL)
-            .expect(200)
-            .then(({ body }) => {
-              expect(body).to.eql({
-                user_id: 2,
-                username: 'icellusedkars',
-                avatar_url: 'https://avatars2.githubusercontent.com/u/24604688?s=460&v=4',
-                name: 'sam',
+            .patch(URL)
+            .send(wrongData)
+            .expect(400)
+            .then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
+        });
+        xit('ERROR - DELETE - status:404 comment id is not the correct syntax', () => {
+          const wrongURL = '/api/articles/1/comments/wrong';
+          return request
+            .delete(wrongURL)
+            .expect(404)
+            .then(({ body }) => expect(body.message).to.equal('page not found'));
+        });
+        it('ERROR - DELETE - status:404 comment id is correct syntax but does not exist', () => {
+          const wrongURL = '/api/articles/1/comments/4345384';
+          return request
+            .delete(wrongURL)
+            .expect(404)
+            .then(({ body }) => expect(body.message).to.equal('page not found'));
+        });
+        describe('/users', () => {
+          it('GET - status:200 and responds with array of user object', () => {
+            const URL = '/api/users';
+            return request
+              .get(URL)
+              .expect(200)
+              .then(({ body }) => {
+                expect(body).to.be.an('array');
+                expect(body[0]).to.have.all.keys('user_id', 'username', 'avatar_url', 'name');
               });
+          });
+          it('ERROR - DELETE - status:405 method not allowed on this path', () => {
+            const URL = '/api/users';
+            return request
+              .delete(URL)
+              .expect(405)
+              .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+          });
+          it('ERROR - PATCH - status:405 method not allowed on this path', () => {
+            const URL = '/api/users';
+            return request
+              .patch(URL)
+              .expect(405)
+              .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+          });
+          it('ERROR - POST - status:405 method not allowed on this path', () => {
+            const URL = '/api/users';
+            return request
+              .post(URL)
+              .expect(405)
+              .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+          });
+          describe('/:user_id', () => {
+            it('GET - status:200 gets users by user id and responds with object', () => {
+              const URL = '/api/users/2';
+              return request
+                .get(URL)
+                .expect(200)
+                .then(({ body }) => {
+                  expect(body).to.eql({
+                    user_id: 2,
+                    username: 'icellusedkars',
+                    avatar_url: 'https://avatars2.githubusercontent.com/u/24604688?s=460&v=4',
+                    name: 'sam',
+                  });
+                });
             });
+            it('ERROR - GET - status:404 invald path', () => {
+              const URL = '/api/users/4543534';
+              return request.get(URL).expect(404).then(({ body }) => expect(body.message).to.equal('page not found'));
+            });
+            it('ERROR - GET - status:400 incorrect user id type', () => {
+              const URL = '/api/users/wrong';
+              return request.get(URL).expect(400).then(({ body }) => expect(body.message).to.equal('invalid input syntax for integer'));
+            });
+          });
         });
       });
     });

@@ -22,7 +22,7 @@ exports.getCommentsByArticleId = (req, res, next) => {
       else ascQuery.orderBy(sort_by, 'asc');
     })
     .then((comments) => {
-      if (typeof comments === 'undefined') next({ status: 404, message: 'page not found' });
+      if (typeof comments === 'undefined') next({ status: 404 });
       else res.status(200).send(comments);
     })
     .catch(next);
@@ -52,24 +52,24 @@ exports.postCommentOnArticle = (req, res, next) => {
     .insert(newObj)
     .returning('*')
     .then(([newComment]) => {
-      if (newComment.length <= 0) next({ status: 404, message: 'page not found' });
+      if (newComment.length <= 0) next({ status: 404 });
       else res.status(201).send(newComment);
     })
     .catch(next);
 };
 
-exports.addNewCommentVote = (req, res, next) => {
+exports.updateCommentVotes = (req, res, next) => {
   const { inc_votes } = req.body;
   const { comment_id } = req.params;
-  connection('comments')
+  return connection('comments')
     .where('comment_id', comment_id)
     .modify((voteQuery) => {
-      if (Object.keys(req.body).length <= 0) next({ status: 400, message: 'content missing from post' });
+      if (typeof inc_votes !== 'number') next({ status: 400, message: 'incorrect data type entered' });
       else voteQuery.increment('votes', inc_votes);
     })
     .returning('*')
     .then(([commentWithNewVote]) => {
-      if (typeof commentWithNewVote === 'undefined') next({ status: 404, message: 'page not found' });
+      if (typeof commentWithNewVote === 'undefined') next({ status: 404 });
       else res.status(200).send(commentWithNewVote);
     })
     .catch(next);
@@ -83,7 +83,7 @@ exports.deleteCommentByCommentId = (req, res, next) => {
     .del()
     .returning('*')
     .then((deletedComment) => {
-      if (deletedComment.length <= 0) next({ status: 404, message: 'page not found' });
+      if (deletedComment.length <= 0) next({ status: 404 });
       else res.status(204).send({});
     })
     .catch(next);

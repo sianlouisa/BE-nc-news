@@ -2,13 +2,13 @@ const articlesRouter = require('express').Router();
 const {
   getArticles,
   getArticlesByArticleId,
-  addNewArticleVote,
+  updateArticleVotes,
   deleteArticleByArticleId,
 } = require('../controllers/articles');
 const {
   getCommentsByArticleId,
   postCommentOnArticle,
-  addNewCommentVote,
+  updateCommentVotes,
   deleteCommentByCommentId,
 } = require('../controllers/comments');
 const { handle405 } = require('../errors/index');
@@ -27,7 +27,7 @@ articlesRouter
 articlesRouter
   .route('/:article_id')
   .get(getArticlesByArticleId)
-  .patch(addNewArticleVote)
+  .patch(updateArticleVotes)
   .delete(deleteArticleByArticleId)
   .all(handle405);
 
@@ -39,7 +39,7 @@ articlesRouter
 
 articlesRouter
   .route('/:article_id/comments/:comment_id')
-  .patch(addNewCommentVote)
+  .patch(updateCommentVotes)
   .delete(deleteCommentByCommentId)
   .all(handle405);
 

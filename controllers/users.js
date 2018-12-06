@@ -12,6 +12,9 @@ exports.getUsersByUserId = (req, res, next) => {
   connection('users')
     .select()
     .where('user_id', user_id)
-    .then(([user]) => res.status(200).send(user))
+    .then(([user]) => {
+      if (typeof user === 'undefined') next({ status: 404 });
+      else res.status(200).send(user);
+    })
     .catch(next);
 };
