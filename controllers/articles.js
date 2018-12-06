@@ -25,7 +25,10 @@ exports.getArticles = (req, res, next) => {
     })
     .limit(limit)
     .offset((p - 1) * limit)
-    .then(articles => res.status(200).send(articles))
+    .then((articles) => {
+      if (typeof articles === 'undefined') next({ status: 404, message: 'page not found' });
+      else res.status(200).send(articles);
+    })
     .catch(next);
 };
 
@@ -83,9 +86,7 @@ exports.getArticlesByTopic = (req, res, next) => {
       if (!sort_ascending) ascQuery.orderBy(sort_by, 'desc');
       else ascQuery.orderBy(sort_by, 'asc');
     })
-    .then((articles) => {
-      res.status(200).send(articles);
-    })
+    .then(articles => res.status(200).send(articles))
     .catch(next);
 };
 

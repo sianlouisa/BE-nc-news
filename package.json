@@ -9,7 +9,7 @@
     "lint:fix": "eslint --fix ./",
     "pre-commit": "npm t",
     "posttest": "npm run lint",
-    "seed:run": "NODE_ENV=test knex migrate:rollback --env test && NODE_ENV=test knex migrate:latest --env test && NODE_ENV=test knex seed:run --env test",
+    "seed:run": "knex migrate:rollback --env test && knex migrate:latest --env test && knex seed:run --env test",
     "dev": "nodemon listen.js"
   },
   "repository": {

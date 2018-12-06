@@ -42,12 +42,19 @@ exports.postCommentOnArticle = (req, res, next) => {
     body,
     article_id,
   };
+  // if input is missing from post
+  if (Object.keys(req.body).length <= 1) {
+    next({ status: 400, message: 'content missing from post' });
+  }
   return connection('comments')
     .join('articles', 'articles.article_id', 'comments.article_id')
     .join('users', 'users.user_id', 'comments.user_id')
     .insert(newObj)
     .returning('*')
-    .then(([newComment]) => res.status(201).send(newComment))
+    .then(([newComment]) => {
+      if (newComment.length <= 0) next({ status: 404, message: 'page not found' });
+      else res.status(201).send(newComment);
+    })
     .catch(next);
 };
 
@@ -56,9 +63,15 @@ exports.addNewCommentVote = (req, res, next) => {
   const { comment_id } = req.params;
   connection('comments')
     .where('comment_id', comment_id)
-    .increment('votes', inc_votes)
+    .modify((voteQuery) => {
+      if (Object.keys(req.body).length <= 0) next({ status: 400, message: 'content missing from post' });
+      else voteQuery.increment('votes', inc_votes);
+    })
     .returning('*')
-    .then(([commentWithNewVote]) => res.status(200).send(commentWithNewVote))
+    .then(([commentWithNewVote]) => {
+      if (typeof commentWithNewVote === 'undefined') next({ status: 404, message: 'page not found' });
+      else res.status(200).send(commentWithNewVote);
+    })
     .catch(next);
 };
 
@@ -68,8 +81,10 @@ exports.deleteCommentByCommentId = (req, res, next) => {
     .select()
     .where('comment_id', comment_id)
     .del()
-    .then(() => {
-      res.status(204).send({});
+    .returning('*')
+    .then((deletedComment) => {
+      if (deletedComment.length <= 0) next({ status: 404, message: 'page not found' });
+      else res.status(204).send({});
     })
     .catch(next);
 };
