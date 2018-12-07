@@ -53,7 +53,7 @@ describe('/api', () => {
         .send(newTopic)
         .expect(422)
         .then(({ body }) => {
-          expect(body.message).to.equal('the key you have entered already exists');
+          expect(body.message).to.equal('the topic you have entered already exists');
         });
     });
     it('ERROR - DELETE - status:405 method cannot be accessed on existing route', () => {
@@ -189,7 +189,7 @@ describe('/api', () => {
           .send(wrongArticle)
           .expect(400)
           .then(({ body }) => {
-            expect(body.message).to.equal('invalid input syntax for integer');
+            expect(body.message).to.equal('invalid data type for user id');
           });
       });
       it('ERROR - POST - status:400 data is missing from post input', () => {
@@ -218,7 +218,7 @@ describe('/api', () => {
           .send(wrongID)
           .expect(422)
           .then(({ body }) => {
-            expect(body.message).to.equal('this id does not exist');
+            expect(body.message).to.equal('this user id does not exist');
           });
       });
       it('ERROR - GET - status:404 invald path name entered', () => {
@@ -227,6 +227,47 @@ describe('/api', () => {
           .get(wrongURL)
           .expect(404)
           .then(({ body }) => expect(body.message).to.equal('page not found'));
+      });
+      it('ERROR - GET - status:404 invald path name entered', () => {
+        const wrongURL = '/api/topics/blah/articles';
+        return request
+          .get(wrongURL)
+          .expect(404)
+          .then(({ body }) => expect(body.message).to.equal('page not found'));
+      });
+      it('ERROR - GET - status:400 limit query is incorrect syntax', () => {
+        const URL = '/api/topics/cats/articles';
+        return request
+          .get(`${URL}?limit=hello`)
+          .expect(400)
+          .then(({ body }) => expect(body.message).to.equal('A valid integer must be provided to limit'));
+      });
+      it('ERROR - GET - status:400 sort by query does not exist', () => {
+        const URL = '/api/topics/cats/articles';
+        return request.get(`${URL}?sort_by=dinosaur`)
+          .expect(400)
+          .then(({ body }) => expect(body.message).to.equal('this column does not exist'));
+      });
+      it('ERROR - GET - status:400 p query incorrect syntax entered', () => {
+        const URL = '/api/topics/cats/articles';
+        return request
+          .get(`${URL}?p=toot`)
+          .expect(400)
+          .then(({ body }) => expect(body.message).to.equal('A valid integer must be provided to page query'));
+      });
+      it('ERROR - GET - status:404 p query goes to page that doesnt exist', () => {
+        const URL = '/api/topics/mitch/articles';
+        return request
+          .get(`${URL}?p=100`)
+          .expect(404)
+          .then(({ body }) => expect(body.message).to.equal('page not found'));
+      });
+      it('ERROR - GET - status:400 sort ascending query invalid syntax', () => {
+        const URL = '/api/topics/mitch/articles';
+        return request
+          .get(`${URL}?sort_ascending=pizza`)
+          .expect(400)
+          .then(({ body }) => expect(body.message).to.equal('must provide true to sort ascending order'));
       });
     });
   });
@@ -287,6 +328,40 @@ describe('/api', () => {
         .then(({ body }) => {
           expect(body.message).to.equal('invalid method on path');
         });
+    });
+    it('ERROR - GET - status:400 limit query is incorrect syntax', () => {
+      const URL = '/api/articles';
+      return request
+        .get(`${URL}?limit=hello`)
+        .expect(400)
+        .then(({ body }) => expect(body.message).to.equal('A valid integer must be provided to limit'));
+    });
+    it('ERROR - GET - status:400 sort by query does not exist', () => {
+      const URL = '/api/articles';
+      return request.get(`${URL}?sort_by=dinosaur`)
+        .expect(400)
+        .then(({ body }) => expect(body.message).to.equal('this column does not exist'));
+    });
+    it('ERROR - GET - status:400 p query incorrect syntax entered', () => {
+      const URL = '/api/articles';
+      return request
+        .get(`${URL}?p=toot`)
+        .expect(400)
+        .then(({ body }) => expect(body.message).to.equal('A valid integer must be provided to page query'));
+    });
+    it('ERROR - GET - status:404 p query goes to page that doesnt exist', () => {
+      const URL = '/api/articles';
+      return request
+        .get(`${URL}?p=5464564576`)
+        .expect(404)
+        .then(({ body }) => expect(body.message).to.equal('page not found'));
+    });
+    it('ERROR - GET - status:400 sort ascending query invalid syntax', () => {
+      const URL = '/api/articles';
+      return request
+        .get(`${URL}?sort_ascending=pizza`)
+        .expect(400)
+        .then(({ body }) => expect(body.message).to.equal('must provide true to sort ascending order'));
     });
     describe('/:article_id', () => {
       it('GET - status:200 gets articles in object by article id', () => {
@@ -381,6 +456,25 @@ describe('/api', () => {
           .expect(400)
           .then(({ body }) => expect(body.message).to.equal('incorrect form for article id'));
       });
+      it('ERROR - PATCH - status:404 path name is invalid but correct syntax', () => {
+        const wrongURL = '/api/articles/435345344';
+        const newVote = { inc_votes: -100 };
+        return request
+          .patch(wrongURL)
+          .send(newVote)
+          .expect(404)
+          .then(({ body }) => expect(body.message).to.equal('page not found'));
+      });
+      it('ERROR - PATCH - status:400 data is missing and votes do not increment', () => {
+        const URL = '/api/articles/1';
+        const emptyVote = {};
+        return request.patch(URL).send(emptyVote).expect(400).then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
+      });
+      it('ERROR - PATCH - status:400 incorrect data type entered for vote', () => {
+        const URL = '/api/articles/1';
+        const emptyVote = { inc_vites: 'not a number' };
+        return request.patch(URL).send(emptyVote).expect(400).then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
+      });
       it('ERROR - DELETE - status:400 request made with bad article id', () => {
         const wrongURL = '/api/articles/abc';
         return request
@@ -388,270 +482,311 @@ describe('/api', () => {
           .expect(400)
           .then(({ body }) => expect(body.message).to.equal('incorrect form for article id'));
       });
-    });
-    describe('/comments', () => {
-      it('GET - status:200 responds with array of comments by article id', () => {
-        const URL = '/api/articles/1/comments';
-        return request
-          .get(URL)
-          .expect(200)
-          .then(({ body }) => {
-            expect(body[0]).to.have.all.keys('comment_id', 'votes', 'created_at', 'author', 'body');
-          });
-      });
-      it('GET - status:200 has default queries for limit(10), sort_by(date), sort_ascending(desc)', () => {
-        const URL = '/api/articles/1/comments';
-        return request
-          .get(URL)
-          .expect(200)
-          .then(({ body }) => {
-            expect(body).to.have.length(10);
-            expect(body[0].created_at).to.eql('2016-11-22T12:36:03.389Z');
-          });
-      });
-      it('GET - status:200 queries are modifiable', () => {
-        const URL = '/api/articles/1/comments';
-        return request
-          .get(`${URL}?limit=5&sort_by=body&sort_ascending=true`)
-          .expect(200)
-          .then(({ body }) => {
-            expect(body).to.have.length(5);
-            expect(body[0].body).to.equal('Ambidextrous marsupial');
-          });
-      });
-      it('GET - status:200 has a page query which is modifiable', () => {
-        const URL = '/api/articles/1/comments';
-        return request
-          .get(`${URL}?limit=3&p=3`)
-          .expect(200)
-          .then(({ body }) => expect(body[0].comment_id).to.equal(8));
-      });
-      it('POST - status:201 responds with object of new comment data', () => {
-        const newComment = { user_id: 2, body: 'insert interesting opinion here' };
-        const URL = '/api/articles/2/comments';
-        return request
-          .post(URL)
-          .send(newComment)
-          .expect(201)
-          .then(({ body }) => {
-            expect(body).to.have.all.keys(
-              'comment_id',
-              'votes',
-              'created_at',
-              'user_id',
-              'body',
-              'article_id',
-            );
-            expect(body.user_id).to.equal(newComment.user_id);
-            expect(body.body).to.equal(newComment.body);
-          });
-      });
-      it('ERROR - DELETE - status:405 method type not allowed on this path', () => {
-        const URL = '/api/articles/2/comments';
-        return request
-          .delete(URL)
-          .expect(405)
-          .then(({ body }) => {
-            expect(body.message).to.equal('invalid method on path');
-          });
-      });
-      it('ERROR - POST - status:400 data is missing from post input', () => {
-        const URL = '/api/articles/3/comments';
-        const wrongComment = { user_id: 2 };
-        return request
-          .post(URL)
-          .send(wrongComment)
-          .expect(400)
-          .then(({ body }) => expect(body.message).to.equal('content missing from post'));
-      });
-      it('ERROR - POST - status:422 user id is valid syntax but does not exist ', () => {
-        const URL = '/api/articles/4/comments';
-        const invalidID = { user_id: 4534, body: 'lalala' };
-        return request
-          .post(URL)
-          .send(invalidID)
-          .expect(422)
-          .then(({ body }) => expect(body.message).to.equal('this id does not exist'));
-      });
-      it('ERROR - POST - status:404 post is correct syntax but path is invalid', () => {
-        const wrongURL = '/api/articles/7547564/comments';
-        const correctComment = { user_id: 1, body: 'this would work if the article id was right' };
-        return request
-          .post(wrongURL)
-          .send(correctComment)
-          .expect(404)
-          .then(({ body }) => expect(body.message).to.equal('page not found'));
-      });
-      it('ERROR - POST - status:400 article id is incorrect format', () => {
-        const wrongURL = '/api/articles/hello/comments';
-        const correctComment = { user_id: 2, body: 'this will error' };
-        return request
-          .post(wrongURL)
-          .send(correctComment)
-          .expect(400)
-          .then(({ body }) => expect(body.message).to.equal('incorrect form for article id'));
-      });
-      it('ERROR - GET - status:404 path is invalid', () => {
-        const wrongURL = '/api/articles/2/hello';
-        return request
-          .get(wrongURL)
-          .expect(404)
-          .then(({ body }) => expect(body.message).to.equal('page not found'));
-      });
-      describe('/:comment_id', () => {
-        it('PATCH - status:200 accepts new vote count which increments comment vote', () => {
-          const URL = '/api/articles/1/comments/3';
-          const newVote = { inc_votes: 10 };
-          return request
-            .patch(URL)
-            .send(newVote)
-            .expect(200)
-            .then(({ body }) => expect(body.votes).to.equal(110));
-        });
-        it('PATCH - status:200 accepts new vote count which decrements comment vote', () => {
-          const URL = '/api/articles/1/comments/2';
-          const newVote = { inc_votes: -100 };
-          return request
-            .patch(URL)
-            .send(newVote)
-            .expect(200)
-            .then(({ body }) => expect(body.votes).to.equal(-86));
-        });
-        it('DELETE - status:204 successfully deleted comment by comment id', () => {
-          const deletionURL = '/api/articles/1/comments/2';
-          const allCommentsURL = '/api/articles/1/comments';
-          return request
-            .get(allCommentsURL)
-            .expect(200)
-            .then(({ body }) => expect(body[0].comment_id).to.equal(2))
-            .then(() => request.delete(deletionURL).expect(204))
-            .then(({ body }) => expect(body).to.eql({}))
-            .then(() => request.get(allCommentsURL).expect(200))
-            .then(({ body }) => expect(body[0].comment_id).to.equal(3))
-            .then(() => request.delete(deletionURL).expect(404))
-            .then(({ body }) => expect(body.message).to.equal('page not found'));
-        });
-        it('ERROR - GET - status:405 method type not allowed on this path', () => {
-          const URL = '/api/articles/1/comments/1';
+
+      describe('/comments', () => {
+        it('GET - status:200 responds with array of comments by article id', () => {
+          const URL = '/api/articles/1/comments';
           return request
             .get(URL)
+            .expect(200)
+            .then(({ body }) => {
+              expect(body[0]).to.have.all.keys('comment_id', 'votes', 'created_at', 'author', 'body');
+            });
+        });
+        it('GET - status:200 has default queries for limit(10), sort_by(date), sort_ascending(desc)', () => {
+          const URL = '/api/articles/1/comments';
+          return request
+            .get(URL)
+            .expect(200)
+            .then(({ body }) => {
+              expect(body).to.have.length(10);
+              expect(body[0].created_at).to.eql('2016-11-22T12:36:03.389Z');
+            });
+        });
+        it('GET - status:200 queries are modifiable', () => {
+          const URL = '/api/articles/1/comments';
+          return request
+            .get(`${URL}?limit=5&sort_by=body&sort_ascending=true`)
+            .expect(200)
+            .then(({ body }) => {
+              expect(body).to.have.length(5);
+              expect(body[0].body).to.equal('Ambidextrous marsupial');
+            });
+        });
+        it('GET - status:200 has a page query which is modifiable', () => {
+          const URL = '/api/articles/1/comments';
+          return request
+            .get(`${URL}?limit=3&p=3`)
+            .expect(200)
+            .then(({ body }) => expect(body[0].comment_id).to.equal(8));
+        });
+        it('POST - status:201 responds with object of new comment data', () => {
+          const newComment = { user_id: 2, body: 'insert interesting opinion here' };
+          const URL = '/api/articles/2/comments';
+          return request
+            .post(URL)
+            .send(newComment)
+            .expect(201)
+            .then(({ body }) => {
+              expect(body).to.have.all.keys(
+                'comment_id',
+                'votes',
+                'created_at',
+                'user_id',
+                'body',
+                'article_id',
+              );
+              expect(body.user_id).to.equal(newComment.user_id);
+              expect(body.body).to.equal(newComment.body);
+            });
+        });
+        it('ERROR - DELETE - status:405 method type not allowed on this path', () => {
+          const URL = '/api/articles/2/comments';
+          return request
+            .delete(URL)
             .expect(405)
             .then(({ body }) => {
               expect(body.message).to.equal('invalid method on path');
             });
         });
-        it('ERROR - DELETE - status:404 path name is invalid', () => {
-          const wrongURL = '/api/articles/1/comments/6545645';
+        it('ERROR - POST - status:400 data is missing from post input', () => {
+          const URL = '/api/articles/3/comments';
+          const wrongComment = { user_id: 2 };
           return request
-            .delete(wrongURL)
-            .expect(404)
-            .then(({ body }) => expect(body.message).to.equal('page not found'));
-        });
-        it('ERROR - PATCH - status:404 path name is invalid but correct syntax', () => {
-          const wrongURL = '/api/articles/4/comments/5345';
-          const newVote = { inc_votes: -100 };
-          return request
-            .patch(wrongURL)
-            .send(newVote)
-            .expect(404)
-            .then(({ body }) => expect(body.message).to.equal('page not found'));
-        });
-        it('ERROR - PATCH - status:400 data is missing and vote does not increment', () => {
-          const URL = '/api/articles/1/comments/2';
-          const commentsURL = '/api/articles/1/comments';
-          const noData = {};
-          return request
-            .get(commentsURL)
-            .expect(200)
-            .then(({ body }) => expect(body[0].votes).to.equal(14))
-            .then(() => request
-              .patch(URL)
-              .send(noData)
-              .expect(400))
-            .then(({ body }) => expect(body.message).to.equal('incorrect data type entered'))
-            .then(() => request.get(commentsURL).expect(200))
-            .then(({ body }) => expect(body[0].votes).to.equal(14));
-        });
-        it('ERROR - PATCH - status:400 data passed contains incorrect data type', () => {
-          const URL = '/api/articles/1/comments/2';
-          const wrongData = { inc_vote: 'hello' };
-          return request
-            .patch(URL)
-            .send(wrongData)
+            .post(URL)
+            .send(wrongComment)
             .expect(400)
-            .then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
+            .then(({ body }) => expect(body.message).to.equal('content missing from post'));
         });
-        xit('ERROR - DELETE - status:404 comment id is not the correct syntax', () => {
-          const wrongURL = '/api/articles/1/comments/wrong';
+        it('ERROR - POST - status:422 user id is valid syntax but does not exist ', () => {
+          const URL = '/api/articles/4/comments';
+          const invalidID = { user_id: 4534, body: 'lalala' };
           return request
-            .delete(wrongURL)
+            .post(URL)
+            .send(invalidID)
+            .expect(422)
+            .then(({ body }) => expect(body.message).to.equal('this user id does not exist'));
+        });
+        it('ERROR - POST - status:404 post is correct syntax but path is invalid', () => {
+          const wrongURL = '/api/articles/7547564/comments';
+          const correctComment = { user_id: 1, body: 'this would work if the article id was right' };
+          return request
+            .post(wrongURL)
+            .send(correctComment)
             .expect(404)
             .then(({ body }) => expect(body.message).to.equal('page not found'));
         });
-        it('ERROR - DELETE - status:404 comment id is correct syntax but does not exist', () => {
-          const wrongURL = '/api/articles/1/comments/4345384';
+        it('ERROR - POST - status:400 article id is incorrect format', () => {
+          const wrongURL = '/api/articles/hello/comments';
+          const correctComment = { user_id: 2, body: 'this will error' };
           return request
-            .delete(wrongURL)
+            .post(wrongURL)
+            .send(correctComment)
+            .expect(400)
+            .then(({ body }) => expect(body.message).to.equal('incorrect form for article id'));
+        });
+        it('ERROR - GET - status:404 path is invalid', () => {
+          const wrongURL = '/api/articles/2/hello';
+          return request
+            .get(wrongURL)
             .expect(404)
             .then(({ body }) => expect(body.message).to.equal('page not found'));
         });
-        describe('/users', () => {
-          it('GET - status:200 and responds with array of user object', () => {
-            const URL = '/api/users';
+        it('ERROR - GET - status:400 limit query is incorrect syntax', () => {
+          const URL = '/api/articles/1/comments';
+          return request
+            .get(`${URL}?limit=hello`)
+            .expect(400)
+            .then(({ body }) => expect(body.message).to.equal('A valid integer must be provided to limit'));
+        });
+        it('ERROR - GET - status:400 sort by query does not exist', () => {
+          const URL = '/api/articles/1/comments';
+          return request.get(`${URL}?sort_by=dinosaur`)
+            .expect(400)
+            .then(({ body }) => expect(body.message).to.equal('this column does not exist'));
+        });
+        it('ERROR - GET - status:400 p query incorrect syntax entered', () => {
+          const URL = '/api/articles/1/comments';
+          return request
+            .get(`${URL}?p=toot`)
+            .expect(400)
+            .then(({ body }) => expect(body.message).to.equal('A valid integer must be provided to page query'));
+        });
+        it('ERROR - GET - status:404 p query goes to page that doesnt exist', () => {
+          const URL = '/api/articles/1/comments';
+          return request
+            .get(`${URL}?p=5464564576`)
+            .expect(404)
+            .then(({ body }) => expect(body.message).to.equal('page not found'));
+        });
+        it('ERROR - GET - status:400 sort ascending query invalid syntax', () => {
+          const URL = '/api/articles/1/comments';
+          return request
+            .get(`${URL}?sort_ascending=pizza`)
+            .expect(400)
+            .then(({ body }) => expect(body.message).to.equal('must provide true to sort ascending order'));
+        });
+        describe('/:comment_id', () => {
+          it('PATCH - status:200 accepts new vote count which increments comment vote', () => {
+            const URL = '/api/articles/1/comments/3';
+            const newVote = { inc_votes: 10 };
+            return request
+              .patch(URL)
+              .send(newVote)
+              .expect(200)
+              .then(({ body }) => expect(body.votes).to.equal(110));
+          });
+          it('PATCH - status:200 accepts new vote count which decrements comment vote', () => {
+            const URL = '/api/articles/1/comments/2';
+            const newVote = { inc_votes: -100 };
+            return request
+              .patch(URL)
+              .send(newVote)
+              .expect(200)
+              .then(({ body }) => expect(body.votes).to.equal(-86));
+          });
+          it('DELETE - status:204 successfully deleted comment by comment id', () => {
+            const deletionURL = '/api/articles/1/comments/2';
+            const allCommentsURL = '/api/articles/1/comments';
+            return request
+              .get(allCommentsURL)
+              .expect(200)
+              .then(({ body }) => expect(body[0].comment_id).to.equal(2))
+              .then(() => request.delete(deletionURL).expect(204))
+              .then(({ body }) => expect(body).to.eql({}))
+              .then(() => request.get(allCommentsURL).expect(200))
+              .then(({ body }) => expect(body[0].comment_id).to.equal(3))
+              .then(() => request.delete(deletionURL).expect(404))
+              .then(({ body }) => expect(body.message).to.equal('page not found'));
+          });
+          it('ERROR - GET - status:405 method type not allowed on this path', () => {
+            const URL = '/api/articles/1/comments/1';
             return request
               .get(URL)
-              .expect(200)
+              .expect(405)
               .then(({ body }) => {
-                expect(body).to.be.an('array');
-                expect(body[0]).to.have.all.keys('user_id', 'username', 'avatar_url', 'name');
+                expect(body.message).to.equal('invalid method on path');
               });
           });
-          it('ERROR - DELETE - status:405 method not allowed on this path', () => {
-            const URL = '/api/users';
+          it('ERROR - DELETE - status:404 path name is invalid', () => {
+            const wrongURL = '/api/articles/1/comments/6545645';
             return request
-              .delete(URL)
-              .expect(405)
-              .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+              .delete(wrongURL)
+              .expect(404)
+              .then(({ body }) => expect(body.message).to.equal('page not found'));
           });
-          it('ERROR - PATCH - status:405 method not allowed on this path', () => {
-            const URL = '/api/users';
+          it('ERROR - PATCH - status:404 path name is invalid but correct syntax', () => {
+            const wrongURL = '/api/articles/4/comments/5345';
+            const newVote = { inc_votes: -100 };
+            return request
+              .patch(wrongURL)
+              .send(newVote)
+              .expect(404)
+              .then(({ body }) => expect(body.message).to.equal('page not found'));
+          });
+          it('ERROR - PATCH - status:400 data is missing and vote does not increment', () => {
+            const URL = '/api/articles/1/comments/2';
+            const commentsURL = '/api/articles/1/comments';
+            const noData = {};
+            return request
+              .get(commentsURL)
+              .expect(200)
+              .then(({ body }) => expect(body[0].votes).to.equal(14))
+              .then(() => request
+                .patch(URL)
+                .send(noData)
+                .expect(400))
+              .then(({ body }) => expect(body.message).to.equal('incorrect data type entered'))
+              .then(() => request.get(commentsURL).expect(200))
+              .then(({ body }) => expect(body[0].votes).to.equal(14));
+          });
+          it('ERROR - PATCH - status:400 data passed contains incorrect data type', () => {
+            const URL = '/api/articles/1/comments/2';
+            const wrongData = { inc_vote: 'hello' };
             return request
               .patch(URL)
-              .expect(405)
-              .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+              .send(wrongData)
+              .expect(400)
+              .then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
           });
-          it('ERROR - POST - status:405 method not allowed on this path', () => {
-            const URL = '/api/users';
+          it('ERROR - DELETE - status:404 comment id is not the correct syntax', () => {
+            const wrongURL = '/api/articles/1/comments/wrong';
             return request
-              .post(URL)
-              .expect(405)
-              .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+              .delete(wrongURL)
+              .expect(404)
+              .then(({ body }) => expect(body.message).to.equal('page not found'));
           });
-          describe('/:user_id', () => {
-            it('GET - status:200 gets users by user id and responds with object', () => {
-              const URL = '/api/users/2';
-              return request
-                .get(URL)
-                .expect(200)
-                .then(({ body }) => {
-                  expect(body).to.eql({
-                    user_id: 2,
-                    username: 'icellusedkars',
-                    avatar_url: 'https://avatars2.githubusercontent.com/u/24604688?s=460&v=4',
-                    name: 'sam',
-                  });
-                });
-            });
-            it('ERROR - GET - status:404 invald path', () => {
-              const URL = '/api/users/4543534';
-              return request.get(URL).expect(404).then(({ body }) => expect(body.message).to.equal('page not found'));
-            });
-            it('ERROR - GET - status:400 incorrect user id type', () => {
-              const URL = '/api/users/wrong';
-              return request.get(URL).expect(400).then(({ body }) => expect(body.message).to.equal('invalid input syntax for integer'));
-            });
+          it('ERROR - DELETE - status:404 comment id is correct syntax but does not exist', () => {
+            const wrongURL = '/api/articles/1/comments/4345384';
+            return request
+              .delete(wrongURL)
+              .expect(404)
+              .then(({ body }) => expect(body.message).to.equal('page not found'));
           });
         });
+      });
+    });
+  });
+  describe('/users', () => {
+    it('GET - status:200 and responds with array of user object', () => {
+      const URL = '/api/users';
+      return request
+        .get(URL)
+        .expect(200)
+        .then(({ body }) => {
+          expect(body).to.be.an('array');
+          expect(body[0]).to.have.all.keys('user_id', 'username', 'avatar_url', 'name');
+        });
+    });
+    it('ERROR - DELETE - status:405 method not allowed on this path', () => {
+      const URL = '/api/users';
+      return request
+        .delete(URL)
+        .expect(405)
+        .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+    });
+    it('ERROR - PATCH - status:405 method not allowed on this path', () => {
+      const URL = '/api/users';
+      return request
+        .patch(URL)
+        .expect(405)
+        .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+    });
+    it('ERROR - POST - status:405 method not allowed on this path', () => {
+      const URL = '/api/users';
+      return request
+        .post(URL)
+        .expect(405)
+        .then(({ body }) => expect(body.message).to.equal('invalid method on path'));
+    });
+    describe('/:user_id', () => {
+      it('GET - status:200 gets users by user id and responds with object', () => {
+        const URL = '/api/users/2';
+        return request
+          .get(URL)
+          .expect(200)
+          .then(({ body }) => {
+            expect(body).to.eql({
+              user_id: 2,
+              username: 'icellusedkars',
+              avatar_url: 'https://avatars2.githubusercontent.com/u/24604688?s=460&v=4',
+              name: 'sam',
+            });
+          });
+      });
+      it('ERROR - GET - status:404 invald path', () => {
+        const URL = '/api/users/4543534';
+        return request
+          .get(URL)
+          .expect(404)
+          .then(({ body }) => expect(body.message).to.equal('page not found'));
+      });
+      it('ERROR - GET - status:400 incorrect user id type', () => {
+        const URL = '/api/users/wrong';
+        return request
+          .get(URL)
+          .expect(400)
+          .then(({ body }) => expect(body.message).to.equal('incorrect form for user id'));
       });
     });
   });

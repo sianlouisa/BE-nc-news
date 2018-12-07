@@ -1,11 +1,18 @@
 const connection = require('../db/connection');
 
-// refactor with getArticlesByTopic to avoid DRY
-// call this one first
 exports.getArticles = (req, res, next) => {
   const {
     limit = 10, sort_by = 'created_at', sort_ascending, p = 1,
   } = req.query;
+  if (limit) {
+    if (Number.isNaN(+limit)) next({ status: 400, message: 'A valid integer must be provided to limit' });
+  }
+  if (p) {
+    if (Number.isNaN(+p)) next({ status: 400, message: 'A valid integer must be provided to page query' });
+  }
+  if (sort_ascending) {
+    if (sort_ascending !== 'true') next({ status: 400, message: 'must provide true to sort ascending order' });
+  }
   connection('articles')
     .select(
       'username AS author',
@@ -26,6 +33,7 @@ exports.getArticles = (req, res, next) => {
     .limit(limit)
     .offset((p - 1) * limit)
     .then((articles) => {
+      if (articles.length <= 0) next({ status: 404 });
       if (typeof articles === 'undefined') next({ status: 404 });
       else res.status(200).send(articles);
     })
@@ -65,6 +73,15 @@ exports.getArticlesByTopic = (req, res, next) => {
   const {
     limit = 10, sort_by = 'created_at', p = 1, sort_ascending,
   } = req.query;
+  if (p) {
+    if (Number.isNaN(+p)) next({ status: 400, message: 'A valid integer must be provided to page query' });
+  }
+  if (limit) {
+    if (Number.isNaN(+limit)) next({ status: 400, message: 'A valid integer must be provided to limit' });
+  }
+  if (sort_ascending) {
+    if (sort_ascending !== 'true') next({ status: 400, message: 'must provide true to sort ascending order' });
+  }
   connection
     .select(
       'title',
@@ -86,7 +103,10 @@ exports.getArticlesByTopic = (req, res, next) => {
       if (!sort_ascending) ascQuery.orderBy(sort_by, 'desc');
       else ascQuery.orderBy(sort_by, 'asc');
     })
-    .then(articles => res.status(200).send(articles))
+    .then((articles) => {
+      if (articles.length <= 0) next({ status: 404 });
+      else res.status(200).send(articles);
+    })
     .catch(next);
 };
 
@@ -105,6 +125,9 @@ exports.postArticleByTopic = (req, res, next) => {
   if (Object.keys(req.body).length <= 2) {
     return next({ status: 400, message: 'content missing from post' });
   }
+  if (typeof req.body.user_id !== 'number') {
+    return next({ status: 400, message: 'invalid data type for user id' });
+  }
   return connection('articles')
     .join('users', 'articles.created_by', 'users.user_id')
     .insert(newObj)
@@ -119,10 +142,15 @@ exports.updateArticleVotes = (req, res, next) => {
   const { inc_votes } = req.body;
   connection('articles')
     .where('article_id', req.params.article_id)
-    .increment('votes', inc_votes)
+    .modify((voteQuery) => {
+      if (typeof inc_votes !== 'number') next({ status: 400, message: 'incorrect data type entered' });
+      else voteQuery.increment('votes', inc_votes);
+    })
     .returning('*')
     .then((articleWithNewVote) => {
-      res.status(200).send(articleWithNewVote);
+      if (articleWithNewVote.length <= 0) next({ status: 404 });
+      if (typeof articleWithNewVote === 'undefined') next({ status: 404 });
+      else res.status(200).send(articleWithNewVote);
     })
     .catch(next);
 };

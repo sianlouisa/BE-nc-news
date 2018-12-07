@@ -4,6 +4,15 @@ exports.getCommentsByArticleId = (req, res, next) => {
   const {
     limit = 10, sort_by = 'created_by', sort_ascending, p = 1,
   } = req.query;
+  if (limit) {
+    if (Number.isNaN(+limit)) next({ status: 400, message: 'A valid integer must be provided to limit' });
+  }
+  if (p) {
+    if (Number.isNaN(+p)) next({ status: 400, message: 'A valid integer must be provided to page query' });
+  }
+  if (sort_ascending) {
+    if (sort_ascending !== 'true') next({ status: 400, message: 'must provide true to sort ascending order' });
+  }
   connection('comments')
     .select(
       'comment_id',
@@ -22,6 +31,7 @@ exports.getCommentsByArticleId = (req, res, next) => {
       else ascQuery.orderBy(sort_by, 'asc');
     })
     .then((comments) => {
+      if (comments.length <= 0) next({ status: 404 });
       if (typeof comments === 'undefined') next({ status: 404 });
       else res.status(200).send(comments);
     })
@@ -42,7 +52,6 @@ exports.postCommentOnArticle = (req, res, next) => {
     body,
     article_id,
   };
-  // if input is missing from post
   if (Object.keys(req.body).length <= 1) {
     next({ status: 400, message: 'content missing from post' });
   }

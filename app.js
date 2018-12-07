@@ -7,7 +7,7 @@ app.use(bodyParser.json());
 
 app.use('/api', apiRouter);
 
-app.use('/*', (req, res, next) => {
+app.use('/api/*', (req, res, next) => {
   next({ status: 404, message: 'page not found' });
 });
 
