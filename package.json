@@ -10,7 +10,11 @@
     "pre-commit": "npm t",
     "posttest": "npm run lint",
     "seed:run": "knex migrate:rollback --env test && knex migrate:latest --env test && knex seed:run --env test",
-    "dev": "nodemon listen.js"
+    "dev": "nodemon listen.js",
+    "seed:prod": "DB_URL=$(heroku config:get DATABASE_URL) knex seed:run --env production",
+    "migrate:latest:prod": "DB_URL=$(heroku config:get DATABASE_URL) knex migrate:latest --env production",
+    "migrate:rollback:prod": "DB_URL=$(heroku config:get DATABASE_URL) knex migrate:rollback --env production",
+    "start": "node listen.js"
   },
   "repository": {
     "type": "git",
