@@ -14,6 +14,12 @@ describe('/api', () => {
   after(() => {
     connection.destroy();
   });
+  it.only('GET - status:200 gets all endpoints', () => {
+    const URL = '/api';
+    return request.get(URL)
+      .expect(200)
+      .then(({ body }) => expect(body[0]).to.have.all.keys('path', 'methods'));
+  });
   it('ERROR - GET - status:404 client enters invalid path', () => {
     return request
       .get('/api/hello')
