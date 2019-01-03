@@ -1,10 +1,20 @@
-const app = require('express')();
+const express = require('express');
+
+const app = express();
 const bodyParser = require('body-parser');
 const apiRouter = require('./routes/api');
 const listEndpoints = require('express-list-endpoints');
 const { handle404, handle422, handle400 } = require('./errors');
 
+app.set('view engine', 'ejs');
+
+app.use(express.static('public'));
+
 app.use(bodyParser.json());
+
+app.get('/', (req, res, next) => {
+  res.render('index.ejs');
+});
 
 app.use('/api', apiRouter);
 

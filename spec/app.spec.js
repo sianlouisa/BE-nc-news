@@ -14,7 +14,7 @@ describe('/api', () => {
   after(() => {
     connection.destroy();
   });
-  it.only('GET - status:200 gets all endpoints', () => {
+  it('GET - status:200 gets all endpoints', () => {
     const URL = '/api';
     return request.get(URL)
       .expect(200)
