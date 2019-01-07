@@ -16,7 +16,8 @@ describe('/api', () => {
   });
   it('GET - status:200 gets all endpoints', () => {
     const URL = '/api';
-    return request.get(URL)
+    return request
+      .get(URL)
       .expect(200)
       .then(({ body }) => expect(body[0]).to.have.all.keys('path', 'methods'));
   });
@@ -28,6 +29,7 @@ describe('/api', () => {
         expect(body.message).to.eql('page not found');
       });
   });
+
   describe('/topics', () => {
     it('GET - status:200 returns array of topics objects', () => {
       const topicsURL = '/api/topics';
@@ -62,6 +64,17 @@ describe('/api', () => {
           expect(body.message).to.equal('the topic you have entered already exists');
         });
     });
+    it('ERROR - GET - status:400 missing data from content', () => {
+      const topicsURL = '/api/topics';
+      const newTopic = { description: 'no slug' };
+      return request
+        .post(topicsURL)
+        .send(newTopic)
+        .expect(400)
+        .then(({ body }) => {
+          expect(body.message).to.equal('missing data from post');
+        });
+    });
     it('ERROR - DELETE - status:405 method cannot be accessed on existing route', () => {
       const URL = '/api/topics';
       return request
@@ -78,9 +91,9 @@ describe('/api', () => {
           .get(URL)
           .expect(200)
           .then(({ body }) => {
-            expect(body).to.be.an('array');
-            expect(body[0].topic).to.equal('mitch');
-            expect(body[0]).to.have.all.keys(
+            expect(body.articles).to.be.an('array');
+            expect(body.articles[0].topic).to.equal('mitch');
+            expect(body.articles[0]).to.have.all.keys(
               'author',
               'title',
               'article_id',
@@ -89,7 +102,7 @@ describe('/api', () => {
               'created_at',
               'topic',
             );
-            expect(body[0].comment_count).to.equal('13');
+            expect(body.articles[0].comment_count).to.equal('13');
           });
       });
       it('GET - status:200 has a limit query defaulted to 10', () => {
@@ -98,7 +111,7 @@ describe('/api', () => {
           .get(URL)
           .expect(200)
           .then(({ body }) => {
-            expect(body).to.have.length(10);
+            expect(body.articles).to.have.length(10);
           });
       });
       it('GET - status:200 responds with correct limit query when altered', () => {
@@ -107,7 +120,7 @@ describe('/api', () => {
           .get(`${URL}?limit=5`)
           .expect(200)
           .then(({ body }) => {
-            expect(body).to.have.length(5);
+            expect(body.articles).to.have.length(5);
           });
       });
       it('GET - status:200 has sort by query defaulted to date', () => {
@@ -116,7 +129,7 @@ describe('/api', () => {
           .get(URL)
           .expect(200)
           .then(({ body }) => {
-            expect(body[0].created_at).to.eql('2018-11-15T12:21:54.171Z');
+            expect(body.articles[0].created_at).to.eql('2018-11-15T12:21:54.171Z');
           });
       });
       it('GET - status:200 sort by query can be altered by different columns', () => {
@@ -125,7 +138,7 @@ describe('/api', () => {
           .get(`${URL}?sort_by=title`)
           .expect(200)
           .then(({ body }) => {
-            expect(body[0].title).to.eql('Z');
+            expect(body.articles[0].title).to.eql('Z');
           });
       });
       it('GET - status:200 has p query to specify which page to start at', () => {
@@ -134,8 +147,8 @@ describe('/api', () => {
           .get(`${URL}?limit=5&p=2`)
           .expect(200)
           .then(({ body }) => {
-            expect(body).to.have.length(5);
-            expect(body[0].article_id).to.equal(7);
+            expect(body.articles).to.have.length(5);
+            expect(body.articles[0].article_id).to.equal(7);
           });
       });
       it('GET - status:200 has default desc sort ascending query', () => {
@@ -144,7 +157,7 @@ describe('/api', () => {
           .get(`${URL}?sort_by=title&sort_ascending=true`)
           .expect(200)
           .then(({ body }) => {
-            expect(body[0].title).to.eql('A');
+            expect(body.articles[0].title).to.eql('A');
           });
       });
       it('POST - status:201 and responds with posted article object with correct keys', () => {
@@ -250,7 +263,8 @@ describe('/api', () => {
       });
       it('ERROR - GET - status:400 sort by query does not exist', () => {
         const URL = '/api/topics/cats/articles';
-        return request.get(`${URL}?sort_by=dinosaur`)
+        return request
+          .get(`${URL}?sort_by=dinosaur`)
           .expect(400)
           .then(({ body }) => expect(body.message).to.equal('this column does not exist'));
       });
@@ -284,8 +298,8 @@ describe('/api', () => {
         .get(URL)
         .expect(200)
         .then(({ body }) => {
-          expect(body).to.be.an('array');
-          expect(body[0]).to.have.all.keys(
+          expect(body.articles).to.be.an('array');
+          expect(body.articles[0]).to.have.all.keys(
             'author',
             'title',
             'article_id',
@@ -302,8 +316,8 @@ describe('/api', () => {
         .get(URL)
         .expect(200)
         .then(({ body }) => {
-          expect(body).to.have.length(10);
-          expect(body[0].created_at).to.equal('2018-11-15T12:21:54.171Z');
+          expect(body.articles).to.have.length(10);
+          expect(body.articles[0].created_at).to.equal('2018-11-15T12:21:54.171Z');
         });
     });
     it('GET - status:200 p query can be altered', () => {
@@ -312,8 +326,8 @@ describe('/api', () => {
         .get(`${URL}?limit=3&p=4`)
         .expect(200)
         .then(({ body }) => {
-          expect(body).to.have.length(3);
-          expect(body[0].article_id).to.equal(10);
+          expect(body.articles).to.have.length(3);
+          expect(body.articles[0].article_id).to.equal(10);
         });
     });
     it('GET - status:200 queries can be modifed', () => {
@@ -322,8 +336,8 @@ describe('/api', () => {
         .get(`${URL}?limit=3&sort_by=title&sort_ascending=true`)
         .expect(200)
         .then(({ body }) => {
-          expect(body).to.have.length(3);
-          expect(body[0].title).to.equal('A');
+          expect(body.articles).to.have.length(3);
+          expect(body.articles[0].title).to.equal('A');
         });
     });
     it('ERROR - DELETE - status:405 method type not allowed on this path', () => {
@@ -344,7 +358,8 @@ describe('/api', () => {
     });
     it('ERROR - GET - status:400 sort by query does not exist', () => {
       const URL = '/api/articles';
-      return request.get(`${URL}?sort_by=dinosaur`)
+      return request
+        .get(`${URL}?sort_by=dinosaur`)
         .expect(400)
         .then(({ body }) => expect(body.message).to.equal('this column does not exist'));
     });
@@ -376,8 +391,8 @@ describe('/api', () => {
           .get(URL)
           .expect(200)
           .then(({ body }) => {
-            expect(body).to.be.an('object');
-            expect(body).to.have.all.keys(
+            expect(body.articles).to.be.an('object');
+            expect(body.articles).to.have.all.keys(
               'article_id',
               'author',
               'title',
@@ -387,8 +402,8 @@ describe('/api', () => {
               'created_at',
               'topic',
             );
-            expect(body.article_id).to.equal(1);
-            expect(body.comment_count).to.equal('13');
+            expect(body.articles.article_id).to.equal(1);
+            expect(body.articles.comment_count).to.equal('13');
           });
       });
       it('PATCH - status:200 adds an increment vote object', () => {
@@ -474,12 +489,20 @@ describe('/api', () => {
       it('ERROR - PATCH - status:400 data is missing and votes do not increment', () => {
         const URL = '/api/articles/1';
         const emptyVote = {};
-        return request.patch(URL).send(emptyVote).expect(400).then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
+        return request
+          .patch(URL)
+          .send(emptyVote)
+          .expect(400)
+          .then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
       });
       it('ERROR - PATCH - status:400 incorrect data type entered for vote', () => {
         const URL = '/api/articles/1';
         const emptyVote = { inc_vites: 'not a number' };
-        return request.patch(URL).send(emptyVote).expect(400).then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
+        return request
+          .patch(URL)
+          .send(emptyVote)
+          .expect(400)
+          .then(({ body }) => expect(body.message).to.equal('incorrect data type entered'));
       });
       it('ERROR - DELETE - status:400 request made with bad article id', () => {
         const wrongURL = '/api/articles/abc';
@@ -489,14 +512,20 @@ describe('/api', () => {
           .then(({ body }) => expect(body.message).to.equal('incorrect form for article id'));
       });
 
-      describe('/comments', () => {
+      describe.only('/comments', () => {
         it('GET - status:200 responds with array of comments by article id', () => {
           const URL = '/api/articles/1/comments';
           return request
             .get(URL)
             .expect(200)
             .then(({ body }) => {
-              expect(body[0]).to.have.all.keys('comment_id', 'votes', 'created_at', 'author', 'body');
+              expect(body.comments[0]).to.have.all.keys(
+                'comment_id',
+                'votes',
+                'created_at',
+                'author',
+                'body',
+              );
             });
         });
         it('GET - status:200 has default queries for limit(10), sort_by(date), sort_ascending(desc)', () => {
@@ -505,8 +534,8 @@ describe('/api', () => {
             .get(URL)
             .expect(200)
             .then(({ body }) => {
-              expect(body).to.have.length(10);
-              expect(body[0].created_at).to.eql('2016-11-22T12:36:03.389Z');
+              expect(body.comments).to.have.length(10);
+              expect(body.comments[0].created_at).to.eql('2016-11-22T12:36:03.389Z');
             });
         });
         it('GET - status:200 queries are modifiable', () => {
@@ -515,8 +544,8 @@ describe('/api', () => {
             .get(`${URL}?limit=5&sort_by=body&sort_ascending=true`)
             .expect(200)
             .then(({ body }) => {
-              expect(body).to.have.length(5);
-              expect(body[0].body).to.equal('Ambidextrous marsupial');
+              expect(body.comments).to.have.length(5);
+              expect(body.comments[0].body).to.equal('Ambidextrous marsupial');
             });
         });
         it('GET - status:200 has a page query which is modifiable', () => {
@@ -524,7 +553,7 @@ describe('/api', () => {
           return request
             .get(`${URL}?limit=3&p=3`)
             .expect(200)
-            .then(({ body }) => expect(body[0].comment_id).to.equal(8));
+            .then(({ body }) => expect(body.comments[0].comment_id).to.equal(8));
         });
         it('POST - status:201 responds with object of new comment data', () => {
           const newComment = { user_id: 2, body: 'insert interesting opinion here' };
@@ -575,7 +604,10 @@ describe('/api', () => {
         });
         it('ERROR - POST - status:404 post is correct syntax but path is invalid', () => {
           const wrongURL = '/api/articles/7547564/comments';
-          const correctComment = { user_id: 1, body: 'this would work if the article id was right' };
+          const correctComment = {
+            user_id: 1,
+            body: 'this would work if the article id was right',
+          };
           return request
             .post(wrongURL)
             .send(correctComment)
@@ -607,7 +639,8 @@ describe('/api', () => {
         });
         it('ERROR - GET - status:400 sort by query does not exist', () => {
           const URL = '/api/articles/1/comments';
-          return request.get(`${URL}?sort_by=dinosaur`)
+          return request
+            .get(`${URL}?sort_by=dinosaur`)
             .expect(400)
             .then(({ body }) => expect(body.message).to.equal('this column does not exist'));
         });

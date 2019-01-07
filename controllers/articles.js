@@ -35,7 +35,7 @@ exports.getArticles = (req, res, next) => {
     .then((articles) => {
       if (articles.length <= 0) next({ status: 404 });
       if (typeof articles === 'undefined') next({ status: 404 });
-      else res.status(200).send(articles);
+      else res.status(200).send({ articles });
     })
     .catch(next);
 };
@@ -63,7 +63,7 @@ exports.getArticlesByArticleId = (req, res, next) => {
     .groupBy('articles.article_id', 'users.username')
     .then(([articles]) => {
       if (typeof articles === 'undefined') next({ status: 404 });
-      else res.status(200).send(articles);
+      else res.status(200).send({ articles });
     })
     .catch(next);
 };
@@ -105,7 +105,7 @@ exports.getArticlesByTopic = (req, res, next) => {
     })
     .then((articles) => {
       if (articles.length <= 0) next({ status: 404 });
-      else res.status(200).send(articles);
+      else res.status(200).send({ articles });
     })
     .catch(next);
 };

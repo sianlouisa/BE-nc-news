@@ -33,7 +33,7 @@ exports.getCommentsByArticleId = (req, res, next) => {
     .then((comments) => {
       if (comments.length <= 0) next({ status: 404 });
       if (typeof comments === 'undefined') next({ status: 404 });
-      else res.status(200).send(comments);
+      else res.status(200).send({ comments });
     })
     .catch(next);
 };

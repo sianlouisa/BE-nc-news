@@ -15,7 +15,7 @@ exports.handle422 = (err, req, res, next) => {
 };
 
 exports.handle400 = (err, req, res, next) => {
-  const codes = { 42703: 'this column does not exist' };
+  const codes = { 42703: 'this column does not exist', 23502: 'missing data from post' };
   if (err.status === 400) res.status(400).send({ message: err.message });
   if (codes[err.code]) res.status(400).send({ message: codes[err.code] });
   else next();
